@@ -8,8 +8,11 @@ import type {
   ClienteResumen,
   Dashboard,
   EventoAgente,
+  Mensaje,
+  OrigenTexto,
   PromesaConCliente,
-  ResultadoCobranza } from
+  ResultadoPreparacion,
+  Tono } from
 '../types/cobranza';
 
 interface CobranzaValor {
@@ -24,7 +27,15 @@ interface CobranzaValor {
   version: number;
   recargar: () => Promise<void>;
   refrescarSilencioso: () => Promise<void>;
-  iniciar: (clienteIds: string[], opciones?: OpcionesCobranza) => Promise<ResultadoCobranza>;
+  /** Prioriza y redacta los recordatorios (no envía nada). */
+  preparar: (clienteIds: string[], opciones?: OpcionesCobranza) => Promise<ResultadoPreparacion>;
+  /** Registra un mensaje que la persona ya envió desde su WhatsApp. */
+  registrarEnvio: (clienteId: string, datos: {texto: string;tono: Tono | null;origen: OrigenTexto | 'manual';}) => Promise<Mensaje>;
+  /** Teléfono al que se abre WhatsApp en modo demo (en vez del número del cliente). */
+  telefonoPrueba: string | null;
+  setTelefonoPrueba: (t: string | null) => void;
+  /** El servidor tiene IA configurada (si no, el asistente usa plantillas y reglas). */
+  iaActiva: boolean;
   marcarPagada: (clienteId: string) => Promise<number>;
   cumplirPromesa: (promesaId: string) => Promise<void>;
   cargarEjemplo: () => Promise<void>;
@@ -40,6 +51,8 @@ export function CobranzaProvider({ children, iniciarVacio = false }: {children: 
   const [promesas, setPromesas] = useState<PromesaConCliente[]>([]);
   const [eventos, setEventos] = useState<EventoAgente[]>([]);
   const [canal, setCanal] = useState<Canal>('whatsapp');
+  const [telefonoPrueba, setTelefonoPrueba] = useState<string | null>(null);
+  const [iaActiva, setIaActiva] = useState(false);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [version, setVersion] = useState(0);
@@ -72,6 +85,8 @@ export function CobranzaProvider({ children, iniciarVacio = false }: {children: 
       setPromesas(p);
       setEventos(e);
       setCanal(a.canal);
+      setTelefonoPrueba(a.telefonoPrueba ?? null);
+      setIaActiva(Boolean(a.iaActiva));
     } catch {
       setError('No pudimos cargar tu cartera. Revisa tu conexión e intenta de nuevo.');
     } finally {
@@ -123,12 +138,14 @@ export function CobranzaProvider({ children, iniciarVacio = false }: {children: 
     setVersion((v) => v + 1);
   }, [refrescarSilencioso]);
 
-  const iniciar = useCallback(
-    async (ids: string[], opciones?: OpcionesCobranza) => {
-      const r = await api.iniciarCobranza(ids, opciones);
-      avisarTutorial('cobranza');
+  const preparar = useCallback(async (ids: string[], opciones?: OpcionesCobranza) => api.prepararCobranza(ids, opciones), []);
+
+  const registrarEnvio = useCallback(
+    async (clienteId: string, datos: {texto: string;tono: Tono | null;origen: OrigenTexto | 'manual';}) => {
+      const m = await api.registrarEnvio(clienteId, datos);
+      if (datos.tono) avisarTutorial('cobranza');
       await despuesDeMutar();
-      return r;
+      return m;
     },
     [despuesDeMutar]
   );
@@ -179,14 +196,18 @@ export function CobranzaProvider({ children, iniciarVacio = false }: {children: 
       version,
       recargar,
       refrescarSilencioso,
-      iniciar,
+      preparar,
+      registrarEnvio,
+      telefonoPrueba,
+      setTelefonoPrueba,
+      iaActiva,
       marcarPagada,
       cumplirPromesa,
       cargarEjemplo,
       vaciar,
       cambiarCanal
     }),
-    [clientes, dashboard, promesas, eventos, canal, cargando, error, version, recargar, refrescarSilencioso, iniciar, marcarPagada, cumplirPromesa, cargarEjemplo, vaciar, cambiarCanal]
+    [clientes, dashboard, promesas, eventos, canal, cargando, error, version, recargar, refrescarSilencioso, preparar, registrarEnvio, telefonoPrueba, iaActiva, marcarPagada, cumplirPromesa, cargarEjemplo, vaciar, cambiarCanal]
   );
 
   return <CobranzaContext.Provider value={valor}>{children}</CobranzaContext.Provider>;

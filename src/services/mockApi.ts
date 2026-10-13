@@ -19,8 +19,12 @@ import type {
   Plantilla,
   ProgresoCobranza,
   PromesaConCliente,
+  OrigenTexto,
   PromesaPago,
-  ResultadoCobranza,
+  ResultadoPreparacion,
+  ResultadoSugerencias,
+  ResumenDia,
+  Borrador,
   Tono } from
 '../types/cobranza';
 import type { EventoGuia, MensajeGuia } from '../types/guia';
@@ -40,6 +44,7 @@ import {
   suscriptores } from
 './mockDb';
 import { responderGuia } from './simuladores';
+import { aISO, resumenPorReglas, sugerirPorReglas, type DatosResumen } from '../utils/asistente';
 
 const BASE_RECUPERADO = 126_400;
 const BASE_TAREAS: Record<AgenteId, number> = { director: 6, analista: 18, redactor: 23, negociador: 11 };
@@ -145,16 +150,52 @@ export async function getEventosAgente(): Promise<EventoAgente[]> {
 
 export interface OpcionesCobranza {
   tono?: Tono;
+  /** Redactar con IA (en la demo sin servidor siempre se usa la plantilla). */
+  conIA?: boolean;
   onProgreso?: (progreso: ProgresoCobranza) => void;
 }
 
-// POST /cobranza/iniciar
-export async function iniciarCobranza(clienteIds: string[], opciones: OpcionesCobranza = {}): Promise<ResultadoCobranza> {
+/* Teléfono de pruebas: en la demo sin servidor vive en este navegador. */
+const CLAVE_TEL = 'cobrix:telefono-prueba';
+let telefonoPruebaMock: string | null = (() => {
+  try {
+    return localStorage.getItem(CLAVE_TEL);
+  } catch {
+    return null;
+  }
+})();
+
+export async function actualizarTelefonoPrueba(telefono: string | null): Promise<void> {
+  await espera(200, 350);
+  telefonoPruebaMock = telefono?.trim() || null;
+  try {
+    if (telefonoPruebaMock) localStorage.setItem(CLAVE_TEL, telefonoPruebaMock);else
+    localStorage.removeItem(CLAVE_TEL);
+  } catch {
+
+    /* sin almacenamiento: queda en memoria */}
+}
+
+const destino = (c: Cliente) => telefonoPruebaMock || c.telefono;
+
+function textoPlantilla(c: ClienteResumen, tono: Tono): string {
+  const plantilla = plantillas.find((p) => p.tono === tono) ?? plantillas[0];
+  return llenarPlantilla(plantilla.contenido, {
+    nombre: primerNombre(c.nombre),
+    empresa: empresaUsuario.nombre,
+    folio: facturasAbiertas(store.db, c.id).map((f) => f.folio).join(' y '),
+    monto: formatMXN(c.deuda),
+    dias: String(c.diasAtraso)
+  });
+}
+
+// POST /cobranza/preparar (prioriza y redacta; no envía nada)
+export async function prepararCobranza(clienteIds: string[], opciones: OpcionesCobranza = {}): Promise<ResultadoPreparacion> {
   const db = store.db;
   const { onProgreso, tono: tonoForzado } = opciones;
   const hoy = new Date();
   hoy.setHours(0, 0, 0, 0);
-  const omitidos: NonNullable<ResultadoCobranza['omitidos']> = [];
+  const omitidos: ResultadoPreparacion['omitidos'] = [];
   const candidatos = clienteIds.
   map((id) => db.clientes.find((c) => c.id === id)).
   filter((c): c is Cliente => Boolean(c)).
@@ -178,71 +219,125 @@ export async function iniciarCobranza(clienteIds: string[], opciones: OpcionesCo
     nivel: c.prioridad.nivel,
     tono: tonoForzado ?? siguienteTono(db.mensajes.filter((m) => m.clienteId === c.id))
   }));
-  const enviados: string[] = [];
-  const reportar = (fase: ProgresoCobranza['fase'], actualId: string | null) =>
-  onProgreso?.({ fase, orden, actualId, enviados: [...enviados] });
+  const listos: string[] = [];
+  const reportar = (fase: ProgresoCobranza['fase'], actualId: string | null) => onProgreso?.({ fase, orden, actualId, listos: [...listos] });
 
   reportar('analizando', null);
   const evA = emitir(db, { agente: 'analista', clienteId: null, accion: 'Ordenando clientes por prioridad', detalle: `${candidatos.length} clientes en evaluación`, estado: 'en_progreso' });
-  await espera(500, 700);
+  await espera(450, 650);
   actualizarEvento(db, evA.id, {
     estado: 'completado',
     accion: 'Clientes ordenados por prioridad',
     detalle: candidatos[0] ? `${candidatos[0].empresa} va primero · score ${candidatos[0].prioridad.score}` : 'Nadie necesita recordatorio ahora'
   });
 
-  const mensajes: Mensaje[] = [];
+  const borradores: Borrador[] = [];
   for (const item of orden) {
     const c = candidatos.find((x) => x.id === item.clienteId);
     if (!c) continue;
-    reportar('enviando', c.id);
-    const evR = emitir(db, { agente: 'redactor', clienteId: c.id, accion: `Enviando recordatorio a ${c.empresa}`, detalle: `Plantilla ${item.tono}`, estado: 'en_progreso' });
-    await espera(280, 420);
-    const plantilla = plantillas.find((p) => p.tono === item.tono) ?? plantillas[0];
-    const contenido = llenarPlantilla(plantilla.contenido, {
-      nombre: primerNombre(c.nombre),
-      empresa: empresaUsuario.nombre,
-      folio: facturasAbiertas(db, c.id).map((f) => f.folio).join(' y '),
-      monto: formatMXN(c.deuda),
-      dias: String(c.diasAtraso)
-    });
-    const mensaje: Mensaje = { id: crearId('msg'), clienteId: c.id, rol: 'agente', agente: 'redactor', contenido, tono: item.tono, esPlantilla: true, fecha: new Date().toISOString() };
-    db.mensajes.push(mensaje);
-    mensajes.push(mensaje);
-    enviados.push(c.id);
-    const canal: Canal = db.canal === 'simulador' ? 'simulador' : c.canal;
-    actualizarEvento(db, evR.id, {
-      estado: 'completado',
-      accion: `Recordatorio enviado a ${c.empresa}`,
-      detalle: `Plantilla ${item.tono} · ${canal === 'whatsapp' ? 'WhatsApp' : 'simulador'}`
+    reportar('redactando', c.id);
+    await espera(160, 260);
+    borradores.push({ clienteId: c.id, empresa: c.empresa, nombre: c.nombre, telefono: destino(c), deuda: c.deuda, tono: item.tono, texto: textoPlantilla(c, item.tono), origen: 'plantilla' });
+    listos.push(c.id);
+  }
+  if (borradores.length) {
+    emitir(db, {
+      agente: 'redactor',
+      clienteId: null,
+      accion: `${borradores.length} ${borradores.length === 1 ? 'recordatorio listo' : 'recordatorios listos'} para enviar`,
+      detalle: 'Con plantilla · se envían desde tu WhatsApp',
+      estado: 'completado'
     });
   }
   reportar('listo', null);
-  return { enviados: enviados.length, mensajes: clonar(mensajes), omitidos };
+  return { borradores: clonar(borradores), omitidos };
 }
 
-// POST /cobranza/responder (simulador: el usuario escribe como si fuera el cliente)
-export async function responderComoCliente(clienteId: string, mensaje: string): Promise<Mensaje> {
+// POST /clientes/:id/envio (la persona lo envió desde su WhatsApp)
+export async function registrarEnvio(clienteId: string, datos: {texto: string;tono: Tono | null;origen: OrigenTexto | 'manual';}): Promise<Mensaje> {
+  const db = store.db;
+  const cliente = db.clientes.find((c) => c.id === clienteId);
+  if (!cliente) throw new Error('Cliente no encontrado');
+  await espera(120, 220);
+  const recordatorio = Boolean(datos.tono);
+  const msg: Mensaje = {
+    id: crearId('msg'),
+    clienteId,
+    rol: 'agente',
+    agente: recordatorio ? 'redactor' : null,
+    contenido: datos.texto,
+    tono: datos.tono,
+    esPlantilla: datos.origen === 'plantilla',
+    fecha: new Date().toISOString()
+  };
+  db.mensajes.push(msg);
+  emitir(
+    db,
+    recordatorio ?
+    { agente: 'redactor', clienteId, accion: `Recordatorio enviado a ${cliente.empresa}`, detalle: `Tono ${datos.tono}${datos.origen === 'ia' ? ' · redactado con IA' : ''} · desde tu WhatsApp`, estado: 'completado' } :
+    { agente: 'negociador', clienteId, accion: `Respondiste a ${cliente.empresa}`, detalle: datos.texto.slice(0, 60), estado: 'completado' }
+  );
+  return clonar(msg);
+}
+
+// POST /clientes/:id/respuesta (lo que el cliente contestó por WhatsApp)
+export async function registrarRespuesta(clienteId: string, texto: string): Promise<Mensaje> {
   const db = store.db;
   const cliente = db.clientes.find((c) => c.id === clienteId);
   if (!cliente) throw new Error('Cliente no encontrado');
   await espera(150, 250);
-  const msg: Mensaje = { id: crearId('msg'), clienteId, rol: 'cliente', agente: null, contenido: mensaje, tono: null, esPlantilla: false, fecha: new Date().toISOString() };
+  const msg: Mensaje = { id: crearId('msg'), clienteId, rol: 'cliente', agente: null, contenido: texto, tono: null, esPlantilla: false, fecha: new Date().toISOString() };
   db.mensajes.push(msg);
-  emitir(db, { agente: 'analista', clienteId, accion: `${cliente.empresa} te escribió`, detalle: `“${mensaje.slice(0, 57)}” · espera tu respuesta`, estado: 'completado' });
+  emitir(db, { agente: 'analista', clienteId, accion: `${cliente.empresa} te escribió`, detalle: `“${texto.slice(0, 57)}” · espera tu respuesta`, estado: 'completado' });
   return clonar(msg);
 }
 
-// POST /clientes/:id/responder (una persona del equipo contesta)
-export async function responderComoEquipo(clienteId: string, texto: string): Promise<Mensaje> {
+// POST /clientes/:id/redactar
+export async function redactarRecordatorio(clienteId: string, tono?: Tono): Promise<{texto: string;tono: Tono;origen: OrigenTexto;}> {
   const db = store.db;
   const cliente = db.clientes.find((c) => c.id === clienteId);
   if (!cliente) throw new Error('Cliente no encontrado');
-  await espera(200, 350);
-  const msg: Mensaje = { id: crearId('msg'), clienteId, rol: 'agente', agente: null, contenido: texto, tono: null, esPlantilla: false, fecha: new Date().toISOString() };
-  db.mensajes.push(msg);
-  emitir(db, { agente: 'negociador', clienteId, accion: `Respondiste a ${cliente.empresa}`, detalle: texto.slice(0, 60), estado: 'completado' });
-  return clonar(msg);
+  await espera(350, 600);
+  const t = tono ?? siguienteTono(db.mensajes.filter((m) => m.clienteId === clienteId));
+  return { texto: textoPlantilla(resumir(db, cliente), t), tono: t, origen: 'plantilla' };
+}
+
+// POST /clientes/:id/sugerencias
+export async function sugerirRespuestas(clienteId: string): Promise<ResultadoSugerencias> {
+  const db = store.db;
+  const cliente = db.clientes.find((c) => c.id === clienteId);
+  if (!cliente) throw new Error('Cliente no encontrado');
+  await espera(400, 700);
+  const r = resumir(db, cliente);
+  const ultimo = [...db.mensajes].filter((m) => m.clienteId === clienteId).sort(porFecha).reverse().find((m) => m.rol === 'cliente');
+  const folios = facturasAbiertas(db, clienteId).map((f) => f.folio).join(' y ');
+  const res = sugerirPorReglas(ultimo?.contenido ?? '', { nombre: primerNombre(cliente.nombre), deuda: r.deuda, folios });
+  return clonar({ ...res, promesa: ultimo ? res.promesa : null, origen: 'plantilla' as const });
+}
+
+// GET /resumen-diario
+export async function getResumenDiario(): Promise<ResumenDia> {
+  await espera(300, 500);
+  const db = store.db;
+  const rs = db.clientes.map((c) => resumir(db, c));
+  const hoy = aISO(new Date());
+  const pendientes = db.promesas.filter((p) => p.estado === 'pendiente' || p.estado === 'incumplida');
+  const deHoy = pendientes.filter((p) => aISO(new Date(p.fechaCompromiso)) === hoy);
+  const vencidas = pendientes.filter((p) => aISO(new Date(p.fechaCompromiso)) < hoy);
+  const datos: DatosResumen = {
+    esperan: rs.filter((r) => r.requiereAtencion).map((r) => ({ id: r.id, empresa: r.empresa })),
+    top: rs.
+    filter((r) => r.deuda > 0 && !r.requiereAtencion && r.estado !== 'promesa').
+    sort((a, b) => b.prioridad.score - a.prioridad.score).
+    slice(0, 3).
+    map((r) => ({ id: r.id, empresa: r.empresa, deuda: r.deuda, diasAtraso: r.diasAtraso, razon: r.prioridad.razon })),
+    promesasHoy: { n: deHoy.length, monto: suma(deHoy) },
+    promesasVencidas: { n: vencidas.length, monto: suma(vencidas) },
+    listosParaRecordatorio: rs.filter((r) => r.deuda > 0 && !r.requiereAtencion && !r.escalado && r.estado === 'vencido').length,
+    vencido: rs.filter((r) => r.estado === 'vencido').reduce((s, r) => s + r.deuda, 0)
+  };
+  const clientes = [...datos.esperan.slice(0, 2), ...datos.top.slice(0, 2)].filter((c, i, arr) => arr.findIndex((x) => x.id === c.id) === i).slice(0, 3);
+  return { texto: resumenPorReglas(datos), clientes, origen: 'plantilla' };
 }
 
 // POST /clientes/:id/promesa
@@ -333,6 +428,8 @@ export async function getAjustes(): Promise<Ajustes> {
   await espera(150, 300);
   return {
     canal: store.db.canal,
+    telefonoPrueba: telefonoPruebaMock,
+    iaActiva: false,
     whatsapp: {
       conectado: true,
       numero: '+52 55 4120 8890',

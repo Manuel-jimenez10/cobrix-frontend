@@ -69,7 +69,7 @@ function BotonSecundario({ to, children, className }: {to: string;children: Reac
 const ENLACES = [
 { href: '#como-funciona', texto: 'Cómo funciona' },
 { href: '#funciones', texto: 'Funciones' },
-{ href: '#guia', texto: 'Guía con IA' }];
+{ href: '#guia', texto: 'IA' }];
 
 
 function Nav() {
@@ -144,12 +144,12 @@ function Nav() {
 type Burbuja = {id: string;de: 'nos' | 'cliente' | 'sistema';texto: string;etiqueta?: string;};
 
 const GUION: Burbuja[] = [
-{ id: 'b1', de: 'nos', etiqueta: 'Recordatorio · amable', texto: 'Hola Jorge, te escribimos de Distribuidora del Valle: la factura F-1042 por $28,500.00 está pendiente. ¿Nos confirmas la fecha de pago?' },
+{ id: 'b1', de: 'nos', etiqueta: 'Redactado con IA · amable', texto: 'Hola Jorge, te escribimos de Distribuidora del Valle: la factura F-1042 por $28,500.00 está pendiente. ¿Nos confirmas la fecha de pago?' },
 { id: 'b2', de: 'cliente', texto: 'Hola, sí. ¿Podemos verlo en dos pagos?' },
-{ id: 'b3', de: 'sistema', texto: 'Jorge espera tu respuesta' },
+{ id: 'b3', de: 'sistema', texto: 'La IA sugiere: aceptar dos pagos' },
 { id: 'b4', de: 'nos', etiqueta: 'Tú', texto: 'Claro, Jorge. Te queda la mitad el viernes y el resto en 15 días.' },
 { id: 'b5', de: 'cliente', texto: '¡Perfecto, así lo hacemos! 👍' },
-{ id: 'b6', de: 'sistema', texto: 'Promesa registrada · $14,250.00 · viernes' }];
+{ id: 'b6', de: 'sistema', texto: 'Promesa detectada · $14,250.00 · viernes' }];
 
 
 function Telefono() {
@@ -277,7 +277,7 @@ function Hero() {
             className="inline-flex items-center gap-2 rounded-full border border-brand/40 bg-brand/10 py-1 pl-1 pr-3 text-xs font-medium text-brand">
 
             <span className="rounded-full bg-brand px-2 py-0.5 text-[10px] font-semibold text-on-brand">Nuevo</span>
-            Guía con IA que te enseña dónde presionar
+            IA que redacta, sugiere y te enseña
             <ArrowRightIcon size={12} aria-hidden="true" />
           </motion.a>
           <h1 className="mt-6 text-[42px] font-semibold leading-[1.02] tracking-tight sm:text-[58px]">
@@ -294,14 +294,14 @@ function Hero() {
             )}
           </h1>
           <motion.p initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.55, delay: 0.38, ease: EASE_OUT }} className="mt-6 max-w-xl text-[17px] leading-relaxed text-muted">
-            Cobrix ordena a quién cobrar primero, envía los recordatorios por WhatsApp y te avisa en cuanto un cliente responde, para que tú cierres el acuerdo.
+            Cobrix ordena a quién cobrar primero, la IA redacta cada recordatorio y tú lo envías desde tu WhatsApp con un toque. Cuando un cliente responde, te sugiere qué contestar para que cierres el acuerdo.
           </motion.p>
           <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.55, delay: 0.48, ease: EASE_OUT }} className="mt-8 flex flex-wrap gap-3">
             <BotonPrimario to="/demo">Probar la demo gratis</BotonPrimario>
             <BotonSecundario to="/entrar">Entrar</BotonSecundario>
           </motion.div>
           <motion.ul initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.7 }} className="mt-6 flex flex-wrap gap-x-5 gap-y-2 text-sm text-muted">
-            {['Sin tarjeta', 'Cartera de ejemplo en segundos', 'Entra con Google'].map((t) =>
+            {['Sin tarjeta', 'Desde tu propio WhatsApp', 'Entra con Google'].map((t) =>
             <li key={t} className="flex items-center gap-1.5">
                 <CheckIcon size={14} className="text-brand" aria-hidden="true" />
                 {t}
@@ -319,7 +319,7 @@ function Hero() {
 
 /* ───────────── Cinta de tecnologías ───────────── */
 
-const STACK = ['WhatsApp Cloud API', 'Supabase', 'Vercel AI SDK', 'Gemini', 'React', 'Hono', 'TypeScript', 'Render', 'Vercel', 'Tailwind', 'Framer Motion', 'Zod'];
+const STACK = ['WhatsApp', 'Supabase', 'Vercel AI SDK', 'Gemini', 'React', 'Hono', 'TypeScript', 'Render', 'Vercel', 'Tailwind', 'Framer Motion', 'Zod'];
 
 function Cinta() {
   const reducir = useReducedMotion();
@@ -340,8 +340,8 @@ function Cinta() {
 
 const PASOS = [
 { icono: ListOrderedIcon, titulo: 'Ve a quién cobrar primero', texto: 'Tu cartera se ordena sola por atraso, monto y respuestas. Cada cliente te dice por qué va primero.' },
-{ icono: SendIcon, titulo: 'Envía recordatorios en un clic', texto: 'A cada cliente vencido le llega por WhatsApp la plantilla que le toca: amable, firme o aviso final.' },
-{ icono: BellRingIcon, titulo: 'Te avisa cuando responden', texto: 'Quien te escribe queda en “Requiere tu atención” y deja de recibir recordatorios hasta que le contestes.' },
+{ icono: SendIcon, titulo: 'Revisa y envía desde tu WhatsApp', texto: 'La IA redacta el mensaje de cada cliente vencido con el tono que le toca: amable, firme o aviso final. Lo revisas y se abre tu WhatsApp con todo listo.' },
+{ icono: BellRingIcon, titulo: 'Te ayuda a contestar', texto: 'Pega lo que te respondió el cliente: la IA te sugiere qué decir y detecta si prometió pagar. Sus recordatorios se pausan hasta que le contestes.' },
 { icono: CalendarCheckIcon, titulo: 'Registra y cobra la promesa', texto: 'Anota la fecha que acordaron y márcala cumplida cuando te paguen. Se suma a lo recuperado.' }];
 
 
@@ -354,7 +354,7 @@ function ComoFunciona() {
       <div className="mx-auto max-w-6xl px-4 sm:px-6">
         <Aparece className="max-w-2xl">
           <Eyebrow>Cómo funciona</Eyebrow>
-          <h2 className="mt-3 text-[32px] font-semibold leading-tight tracking-tight sm:text-[40px]">Lo repetitivo, automático. La relación, en tus manos.</h2>
+          <h2 className="mt-3 text-[32px] font-semibold leading-tight tracking-tight sm:text-[40px]">Lo repetitivo lo hace Cobrix. La relación, en tus manos.</h2>
         </Aparece>
         <div ref={ref} className="relative mt-14 pl-12 sm:pl-16">
           <div className="absolute bottom-0 left-[18px] top-0 w-px bg-line sm:left-[26px]" aria-hidden="true" />
@@ -388,9 +388,9 @@ function ComoFunciona() {
 /* ───────────── Funciones ───────────── */
 
 const FUNCIONES = [
-{ icono: MessageCircleIcon, titulo: 'WhatsApp oficial', texto: 'Plantillas aprobadas por Meta y la regla de la ventana de 24 h, respetadas automáticamente.' },
+{ icono: MessageCircleIcon, titulo: 'Desde tu WhatsApp', texto: 'Sin configurar nada: se abre tu WhatsApp con el chat y el mensaje listos. Tus clientes ven el número que ya conocen. API oficial de Meta, próximamente.' },
 { icono: ClockIcon, titulo: 'Horarios y tono', texto: 'Define cuándo se pueden enviar recordatorios y qué tan firmes pueden ser.' },
-{ icono: BellRingIcon, titulo: 'Nada de mensajes de más', texto: 'Si el cliente ya respondió o prometió pagar, Cobrix no le vuelve a escribir.' },
+{ icono: BellRingIcon, titulo: 'Nada de mensajes de más', texto: 'Si el cliente ya respondió o prometió pagar, Cobrix no te propone volver a escribirle.' },
 { icono: BanknoteIcon, titulo: 'Recuperado en vivo', texto: 'Por cobrar, vencido, antigüedad y lo recuperado del mes, actualizados en tiempo real.' },
 { icono: ShieldCheckIcon, titulo: 'Tus datos, solo tuyos', texto: 'Cada cuenta está aislada en la base de datos. Entra con tu correo o con Google.' },
 { icono: GraduationCapIcon, titulo: 'Recorrido guiado', texto: 'La primera vez, la app te ilumina cada botón y avanza contigo paso a paso.' }];
@@ -502,13 +502,13 @@ function Guia() {
     <section id="guia" className="scroll-mt-20 py-24">
       <div className="mx-auto grid max-w-6xl grid-cols-1 items-center gap-12 px-4 sm:px-6 lg:grid-cols-2">
         <Aparece>
-          <Eyebrow>Guía con IA</Eyebrow>
-          <h2 className="mt-3 text-[32px] font-semibold leading-tight tracking-tight sm:text-[40px]">Pregunta cómo se hace. Te ilumina dónde presionar.</h2>
+          <Eyebrow>IA en cada paso</Eyebrow>
+          <h2 className="mt-3 text-[32px] font-semibold leading-tight tracking-tight sm:text-[40px]">Redacta, sugiere y te enseña. Tú decides.</h2>
           <p className="mt-5 text-[16px] leading-relaxed text-muted">
-            La Guía conoce cada pantalla y tu cartera real: te dice cuánto te deben, a quién contestar primero y te lleva al botón exacto. Sin manuales ni capacitaciones.
+            El asistente escribe cada recordatorio según el atraso y el historial del cliente, te propone qué contestar y detecta promesas de pago. La Guía conoce cada pantalla y te lleva al botón exacto. Nada sale sin que lo revises.
           </p>
           <ul className="mt-6 space-y-3 text-[15px]">
-            {['“¿Cuánto me deben?” con tus cifras reales', '“Un cliente me respondió, ¿qué hago?”', 'Te lleva a la pantalla y señala el botón'].map((t) =>
+            {['Recordatorios redactados para cada cliente', '3 respuestas sugeridas cuando te escriben', 'Detecta promesas de pago y te las deja listas', 'Resumen del día y una Guía que señala dónde presionar'].map((t) =>
             <li key={t} className="flex items-start gap-2.5">
                 <span className="mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full bg-brand/15 text-brand">
                   <CheckIcon size={12} />

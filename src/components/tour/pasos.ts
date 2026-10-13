@@ -28,6 +28,14 @@ const rutaCliente = (ctx: ContextoPaso) => ctx.clienteId ? `/cartera/${ctx.clien
 
 export const PASOS_RECORRIDO: PasoRecorrido[] = [
 {
+  id: 'resumen',
+  objetivo: () => ['resumen-diario', 'kpis'],
+  titulo: () => 'Tu resumen del día',
+  texto: () => 'Cada mañana el asistente te dice qué hacer primero y por qué: a quién contestar, qué promesas vencen y a quién cobrar.',
+  avance: { tipo: 'siguiente' },
+  ruta: () => '/'
+},
+{
   id: 'kpis',
   objetivo: () => ['kpis'],
   titulo: () => 'Esto es lo que te deben',
@@ -63,15 +71,23 @@ export const PASOS_RECORRIDO: PasoRecorrido[] = [
   id: 'responder',
   objetivo: () => ['responder'],
   titulo: () => 'Contéstale',
-  texto: () => 'Con “Tú (equipo)” seleccionado, toca una sugerencia o escribe tu respuesta y presiona enviar. Le llega por WhatsApp.',
+  texto: () => 'Con “Tú respondes” seleccionado, toca una sugerencia de la IA, revísala y presiona el botón verde: se abre tu WhatsApp con el mensaje listo para enviar.',
   avance: { tipo: 'evento', evento: 'atender' },
+  ruta: rutaCliente
+},
+{
+  id: 'pegar-respuesta',
+  objetivo: () => ['pegar-respuesta'],
+  titulo: () => 'Cuando te conteste',
+  texto: () => 'Copia lo que te escribió en WhatsApp y pégalo con “Respuesta del cliente”. La IA te sugiere qué contestar y detecta si prometió pagar.',
+  avance: { tipo: 'siguiente' },
   ruta: rutaCliente
 },
 {
   id: 'promesa',
   objetivo: () => ['registrar-promesa'],
   titulo: () => 'Registra lo que acordaron',
-  texto: () => 'Si te dio una fecha de pago, presiona “Registrar promesa”.',
+  texto: () => 'Si te dio una fecha de pago, presiona “Registrar promesa”. Cuando la IA la detecta en su mensaje, te la deja lista con monto y fecha.',
   avance: { tipo: 'clic' },
   ruta: rutaCliente
 },
@@ -111,23 +127,31 @@ export const PASOS_RECORRIDO: PasoRecorrido[] = [
   id: 'iniciar',
   objetivo: () => ['iniciar-cobranza'],
   titulo: () => 'Envía recordatorios',
-  texto: () => 'Presiona “Iniciar cobranza”: a cada cliente vencido le llega por WhatsApp la plantilla que le toca (amable, firme o aviso final).',
+  texto: () => 'Presiona “Iniciar cobranza”: Cobrix ordena a los clientes vencidos y la IA redacta el mensaje de cada uno con el tono que le toca.',
   avance: { tipo: 'clic' },
   ruta: () => '/'
 },
 {
   id: 'confirmar-envio',
   objetivo: () => ['confirmar-envio'],
-  titulo: () => 'Revisa y confirma',
-  texto: () => 'Aquí ves a quién se le enviará y a quién se omite (por ejemplo, si espera tu respuesta o ya prometió pagar). Presiona “Enviar”.',
+  titulo: () => 'Revisa a quién le escribes',
+  texto: () => 'Aquí ves a quién se le escribirá y a quién se omite (por ejemplo, si espera tu respuesta o ya prometió pagar). Presiona “Preparar mensajes”.',
+  avance: { tipo: 'clic' },
+  ruta: () => '/'
+},
+{
+  id: 'enviar-whatsapp',
+  objetivo: () => ['enviar-whatsapp'],
+  titulo: () => 'Revisa y envía desde tu WhatsApp',
+  texto: () => 'Lee el mensaje, edítalo si quieres y presiona “Enviar por WhatsApp”. Se abre tu WhatsApp con el chat listo: envíalo y regresa. Con “Saltar” pasas al siguiente.',
   avance: { tipo: 'evento', evento: 'cobranza' },
   ruta: () => '/'
 },
 {
   id: 'listo-envio',
-  objetivo: () => ['cobranza-listo'],
-  titulo: () => '¡Recordatorios enviados!',
-  texto: () => 'Cuando alguien conteste, aparecerá en “Requieren tu atención” y en la Cartera como “Espera respuesta”. Presiona “Listo”.',
+  objetivo: () => ['cobranza-listo', 'enviar-whatsapp'],
+  titulo: () => '¡Así de rápido!',
+  texto: () => 'Sigue con los demás o presiona “Listo”. Cuando alguien te conteste, pega su respuesta en su conversación y aparecerá en “Requieren tu atención”.',
   avance: { tipo: 'clic' },
   ruta: () => '/'
 },
@@ -143,7 +167,7 @@ export const PASOS_RECORRIDO: PasoRecorrido[] = [
   id: 'fin',
   objetivo: () => [],
   titulo: () => '¡Listo, ya conoces todo el flujo!',
-  texto: () => 'Contestar → registrar la promesa → marcarla cumplida → enviar recordatorios. Para conectar tu WhatsApp o cambiar horarios, entra a Ajustes.',
+  texto: () => 'Contestar → registrar la promesa → marcarla cumplida → enviar recordatorios. En Ajustes puedes poner tu WhatsApp para pruebas y cambiar horarios.',
   avance: { tipo: 'siguiente' },
   ruta: () => '/'
 }];

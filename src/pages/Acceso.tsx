@@ -12,8 +12,8 @@ import { EASE_OUT } from '../utils/motion';
 
 const FUNCIONES = [
 { icono: ListOrderedIcon, titulo: 'Prioriza tu cartera', texto: 'Sabes a quién cobrar primero y por qué' },
-{ icono: SendIcon, titulo: 'Recordatorios por WhatsApp', texto: 'Plantillas aprobadas: amable, firme y aviso final' },
-{ icono: MessageCircleIcon, titulo: 'Tú cierras el acuerdo', texto: 'Te avisa cuando un cliente responde' },
+{ icono: SendIcon, titulo: 'Recordatorios desde tu WhatsApp', texto: 'La IA los redacta; tú los revisas y envías' },
+{ icono: MessageCircleIcon, titulo: 'Tú cierras el acuerdo', texto: 'Te sugiere qué contestar y detecta promesas' },
 { icono: LifeBuoyIcon, titulo: 'Guía con IA', texto: 'Te enseña a usar la app y señala dónde presionar' }];
 
 function Campo({ id, etiqueta, children }: {id: string;etiqueta: string;children: ReactNode;}) {
@@ -230,12 +230,12 @@ function Escaparate() {
       </Link>
       <div className="relative max-w-md">
         <p className="text-[34px] font-semibold leading-[1.1] tracking-tight">
-          Los recordatorios, en automático.
+          Lo repetitivo, lo hace Cobrix.
           <br />
           <span className="text-brand">La relación, en tus manos.</span>
         </p>
         <p className="mt-4 text-[15px] leading-relaxed text-muted">
-          Cobrix ordena a quién cobrar primero y envía los recordatorios por WhatsApp. Cuando un cliente responde, te avisa para que tú cierres el acuerdo.
+          Cobrix ordena a quién cobrar primero y la IA redacta cada recordatorio para que lo envíes desde tu WhatsApp. Cuando un cliente responde, te sugiere qué contestar para que tú cierres el acuerdo.
         </p>
         <ul className="mt-9 space-y-3">
           {FUNCIONES.map((f, i) =>

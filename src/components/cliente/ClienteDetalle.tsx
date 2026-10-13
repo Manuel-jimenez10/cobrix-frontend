@@ -52,6 +52,7 @@ export function ClienteDetalle({ id, modo }: ClienteDetalleProps) {
   const [pestana, setPestana] = useState<Pestana>('conversacion');
   const [pagoAbierto, setPagoAbierto] = useState(false);
   const [promesaAbierta, setPromesaAbierta] = useState(false);
+  const [promesaInicial, setPromesaInicial] = useState<{monto: number;fecha: string;} | null>(null);
   const navigate = useNavigate();
   const volver = () => navigate('/cartera');
   const ladoALado = modo === 'panel' && anchoXL;
@@ -93,7 +94,10 @@ export function ClienteDetalle({ id, modo }: ClienteDetalleProps) {
   return (
     <div className="flex h-full min-h-0 flex-col">
       {cabeceraMovil}
-      <ClienteEncabezado detalle={detalle} modo={modo} onMarcarPagada={() => setPagoAbierto(true)} onRegistrarPromesa={() => setPromesaAbierta(true)} />
+      <ClienteEncabezado detalle={detalle} modo={modo} onMarcarPagada={() => setPagoAbierto(true)} onRegistrarPromesa={() => {
+          setPromesaInicial(null);
+          setPromesaAbierta(true);
+        }} />
 
       {!ladoALado &&
       <div role="tablist" aria-label="Secciones del cliente" className="flex gap-1 border-b border-line px-4 lg:px-6">
@@ -120,13 +124,21 @@ export function ClienteDetalle({ id, modo }: ClienteDetalleProps) {
       }
 
       <div className={cn('min-h-0 flex-1', ladoALado && 'grid grid-cols-[minmax(0,1fr)_340px]')}>
-        {(ladoALado || pestana === 'conversacion') && <Conversacion detalle={detalle} actualizar={actualizar} recargar={recargar} />}
+        {(ladoALado || pestana === 'conversacion') && <Conversacion
+            detalle={detalle}
+            actualizar={actualizar}
+            recargar={recargar}
+            onRegistrarPromesa={(inicial) => {
+              setPromesaInicial(inicial);
+              setPromesaAbierta(true);
+            }} />}
         {(ladoALado || pestana === 'detalle') && <aside className={cn('h-full overflow-y-auto', ladoALado && 'border-l border-line')}>{panelDetalle}</aside>}
       </div>
 
       <ConfirmarPagoDialog clienteId={pagoAbierto ? detalle.cliente.id : null} onCerrar={() => setPagoAbierto(false)} />
       <RegistrarPromesaDialog
         cliente={promesaAbierta ? detalle.cliente : null}
+        inicial={promesaInicial}
         onCerrar={() => setPromesaAbierta(false)}
         onRegistrada={() => {
           void recargar();

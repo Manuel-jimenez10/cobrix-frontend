@@ -18,7 +18,7 @@ const FAQS: Faq[] = [
   patron: /(respond|contest|atencion|me escribio|escribieron|negoci)/,
   texto: (db) => {
     const n = db.clientes.map((c) => resumir(db, c)).filter((r) => r.requiereAtencion).length;
-    return 'Cuando un cliente contesta, su conversación queda marcada como "Requiere atención" y se pausan sus recordatorios. Abre al cliente, escríbele desde el cuadro de abajo (modo "Tú (equipo)") y, si acuerdan una fecha, usa "Registrar promesa".' + (
+    return 'Cuando un cliente contesta, su conversación queda marcada como "Requiere atención" y se pausan sus recordatorios. Abre al cliente: con "Tú respondes" la IA te sugiere respuestas; elige una, revísala y presiona el botón verde para enviarla desde tu WhatsApp. Si acuerdan una fecha, usa "Registrar promesa". Cuando el cliente te conteste en WhatsApp, pega su mensaje con "Respuesta del cliente".' + (
     n ? ` Ahora mismo tienes ${n} cliente${n === 1 ? '' : 's'} esperando tu respuesta.` : '');
   },
   acciones: [{ destino: 'atencion', etiqueta: 'Ver quién espera respuesta' }]
@@ -30,8 +30,13 @@ const FAQS: Faq[] = [
 },
 {
   patron: /(recordatorio|enviar|mandar|cobrar|cobranza|plantilla)/,
-  texto: () => 'Toca "Iniciar cobranza": Cobrix ordena a los clientes por prioridad y les manda la plantilla que toca (amable, firme o final). Se omite a quien espera tu respuesta o ya prometió pagar. También puedes enviar a un solo cliente desde su ficha con "Enviar recordatorio".',
+  texto: () => 'Toca "Iniciar cobranza": Cobrix ordena a los clientes por prioridad y prepara el mensaje de cada uno con el tono que le toca (amable, firme o final). Luego los revisas uno a uno y presionas "Enviar por WhatsApp": se abre tu WhatsApp con el chat y el texto listos. Se omite a quien espera tu respuesta o ya prometió pagar.',
   acciones: [{ destino: 'iniciar_cobranza', etiqueta: 'Iniciar cobranza' }]
+},
+{
+  patron: /(\bia\b|inteligencia|sugerencia|redact|resumen del dia|asistente)/,
+  texto: () => 'La IA te ayuda en cuatro cosas: 1) redacta cada recordatorio según el tono, el atraso y el historial del cliente; 2) cuando un cliente responde, te sugiere 3 respuestas; 3) detecta si prometió pagar y te deja la promesa lista; 4) en Inicio te da el resumen del día. Tú siempre revisas y envías: nada sale solo.',
+  acciones: [{ destino: 'atencion', etiqueta: 'Ver sugerencias en un cliente' }]
 },
 {
   patron: /(prioridad|score|primero|orden|analista)/,
@@ -40,8 +45,8 @@ const FAQS: Faq[] = [
 },
 {
   patron: /(whatsapp|meta|numero|telefono|24 ?h|ventana)/,
-  texto: () => 'Para enviar desde el número de tu empresa: Ajustes → “Conectar mi WhatsApp”, escribe tu número y el nombre del negocio, confirma el código de 6 dígitos que te llega por SMS y listo; Cobrix crea las plantillas. Ese número no puede estar activo en la app de WhatsApp. Recuerda: Meta solo permite texto libre 24 h después del último mensaje del cliente; fuera de esa ventana, solo plantillas.',
-  acciones: [{ destino: 'whatsapp', etiqueta: 'Configurar WhatsApp' }]
+  texto: () => 'Los mensajes salen desde tu propio WhatsApp: Cobrix lo abre con el chat del cliente y el texto listo, tú solo presionas enviar. No hay nada que configurar. Para probar con los clientes de ejemplo (sus números son ficticios), pon tu número en Ajustes → "Tu WhatsApp para pruebas". El envío automático con la API oficial de Meta llega pronto: la app está en revisión desde el 12 de octubre de 2026.',
+  acciones: [{ destino: 'whatsapp', etiqueta: 'Abrir ajustes de WhatsApp' }]
 },
 {
   patron: /(horario|tono|regla|politica|ajuste|configur)/,

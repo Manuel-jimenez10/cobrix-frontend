@@ -18,8 +18,12 @@ import type {
   Plantilla,
   ProgresoCobranza,
   PromesaConCliente,
+  OrigenTexto,
   PromesaPago,
-  ResultadoCobranza } from
+  ResultadoPreparacion,
+  ResultadoSugerencias,
+  ResumenDia,
+  Tono } from
 '../types/cobranza';
 import type { EventoGuia, MensajeGuia } from '../types/guia';
 import type { Politicas } from '../types/politicas';
@@ -100,11 +104,11 @@ export const getEventosAgente = () => get<EventoAgente[]>('/eventos-agente');
 
 /* ───────────── Cobranza y Guía (streaming) ───────────── */
 
-export async function iniciarCobranza(clienteIds: string[], opciones: OpcionesCobranza = {}): Promise<ResultadoCobranza> {
-  let resultado: ResultadoCobranza = { enviados: 0, mensajes: [], omitidos: [] };
-  for await (const ev of ndjson<{tipo: 'progreso';progreso: ProgresoCobranza;} | {tipo: 'resultado';resultado: ResultadoCobranza;}>(
-    '/cobranza/iniciar',
-    { clienteIds, tono: opciones.tono }
+export async function prepararCobranza(clienteIds: string[], opciones: OpcionesCobranza = {}): Promise<ResultadoPreparacion> {
+  let resultado: ResultadoPreparacion = { borradores: [], omitidos: [] };
+  for await (const ev of ndjson<{tipo: 'progreso';progreso: ProgresoCobranza;} | {tipo: 'resultado';resultado: ResultadoPreparacion;}>(
+    '/cobranza/preparar',
+    { clienteIds, tono: opciones.tono, conIA: opciones.conIA ?? true }
   )) {
     if (ev.tipo === 'progreso') opciones.onProgreso?.(ev.progreso);else
     resultado = ev.resultado;
@@ -112,13 +116,19 @@ export async function iniciarCobranza(clienteIds: string[], opciones: OpcionesCo
   return resultado;
 }
 
-/** Simulador: el administrador escribe como si fuera el cliente. */
-export const responderComoCliente = async (clienteId: string, mensaje: string) =>
-(await post<{mensaje: Mensaje;}>('/cobranza/responder', { clienteId, mensaje })).mensaje;
+/** La persona envió el mensaje desde su WhatsApp: se registra en la conversación. */
+export const registrarEnvio = async (clienteId: string, datos: {texto: string;tono: Tono | null;origen: OrigenTexto | 'manual';}) =>
+(await post<{mensaje: Mensaje;}>(`/clientes/${encodeURIComponent(clienteId)}/envio`, datos)).mensaje;
 
-/** Una persona del equipo responde al cliente (por el canal activo). */
-export const responderComoEquipo = async (clienteId: string, texto: string) =>
-(await post<{mensaje: Mensaje;}>(`/clientes/${encodeURIComponent(clienteId)}/responder`, { texto })).mensaje;
+/** Lo que el cliente contestó por WhatsApp (la persona lo pega en la app). */
+export const registrarRespuesta = async (clienteId: string, texto: string) =>
+(await post<{mensaje: Mensaje;}>(`/clientes/${encodeURIComponent(clienteId)}/respuesta`, { texto })).mensaje;
+
+/* Asistente de cobranza (IA con respaldo por reglas) */
+export const redactarRecordatorio = (clienteId: string, tono?: Tono) =>
+post<{texto: string;tono: Tono;origen: OrigenTexto;}>(`/clientes/${encodeURIComponent(clienteId)}/redactar`, { tono });
+export const sugerirRespuestas = (clienteId: string) => post<ResultadoSugerencias>(`/clientes/${encodeURIComponent(clienteId)}/sugerencias`);
+export const getResumenDiario = () => get<ResumenDia>('/resumen-diario');
 
 /** Registra la promesa de pago acordada (fecha AAAA-MM-DD). */
 export const registrarPromesa = async (clienteId: string, datos: {monto: number;fecha: string;}) =>

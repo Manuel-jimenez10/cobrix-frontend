@@ -6,6 +6,7 @@ import { AgingChart } from '../components/dashboard/AgingChart';
 import { KpiGrid } from '../components/dashboard/KpiGrid';
 import { PorAtender } from '../components/dashboard/PorAtender';
 import { PrioridadHoy } from '../components/dashboard/PrioridadHoy';
+import { ResumenDiario } from '../components/dashboard/ResumenDiario';
 import { FabCobranza } from '../components/layout/FabCobranza';
 import { MobileHeader } from '../components/layout/MobileHeader';
 import { Button } from '../components/ui/Button';
@@ -84,6 +85,7 @@ export function Inicio() {
   <DashboardSkeleton /> :
 
   <div className="space-y-6">
+        <ResumenDiario />
         <div data-tour="kpis">
           <KpiGrid dashboard={dashboard} />
         </div>

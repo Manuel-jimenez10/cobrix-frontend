@@ -14,6 +14,8 @@ interface RegistrarPromesaDialogProps {
   cliente: ClienteResumen | null;
   onCerrar: () => void;
   onRegistrada: () => void;
+  /** Valores detectados por el asistente en la respuesta del cliente. */
+  inicial?: {monto: number;fecha: string;} | null;
 }
 
 const aISO = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
@@ -29,7 +31,7 @@ const proximoViernes = () => {
 };
 
 /** El equipo registra el compromiso de pago que acordó con el cliente. */
-export function RegistrarPromesaDialog({ cliente, onCerrar, onRegistrada }: RegistrarPromesaDialogProps) {
+export function RegistrarPromesaDialog({ cliente, onCerrar, onRegistrada, inicial }: RegistrarPromesaDialogProps) {
   const [monto, setMonto] = useState('');
   const [fecha, setFecha] = useState(enDias(7));
   const [fase, setFase] = useState<'form' | 'guardando' | 'exito'>('form');
@@ -38,10 +40,11 @@ export function RegistrarPromesaDialog({ cliente, onCerrar, onRegistrada }: Regi
 
   useEffect(() => {
     if (cliente) {
-      setMonto(String(cliente.deuda));
-      setFecha(enDias(7));
+      setMonto(String(inicial ? Math.min(inicial.monto, cliente.deuda) : cliente.deuda));
+      setFecha(inicial && inicial.fecha >= aISO(new Date()) ? inicial.fecha : enDias(7));
       setFase('form');
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cliente]);
 
   const valor = Number(monto.replace(/[^\d.]/g, ''));

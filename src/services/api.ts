@@ -18,10 +18,13 @@ export const getClientes = impl.getClientes;
 export const getCliente = impl.getCliente;
 export const getPromesas = impl.getPromesas;
 export const getEventosAgente = impl.getEventosAgente;
-export const iniciarCobranza = impl.iniciarCobranza;
-export const responderComoCliente = impl.responderComoCliente;
-export const responderComoEquipo = impl.responderComoEquipo;
+export const prepararCobranza = impl.prepararCobranza;
+export const registrarEnvio = impl.registrarEnvio;
+export const registrarRespuesta = impl.registrarRespuesta;
 export const registrarPromesa = impl.registrarPromesa;
+export const redactarRecordatorio = impl.redactarRecordatorio;
+export const sugerirRespuestas = impl.sugerirRespuestas;
+export const getResumenDiario = impl.getResumenDiario;
 export const chatGuia = impl.chatGuia;
 export const suscribirEventos = impl.suscribirEventos;
 export const marcarPagada = impl.marcarPagada;
@@ -45,7 +48,7 @@ export const getPerfil = usaDatosMock ?
 async (): Promise<http.Perfil> => ({ nombre: 'Andrea', empresa: 'Distribuidora del Valle', esAnonimo: true, iaActiva: false, modelo: null }) :
 http.getPerfil;
 export const suscribirMensajes = usaDatosMock ? (() => () => {}) as typeof http.suscribirMensajes : http.suscribirMensajes;
-export const actualizarTelefonoPrueba = usaDatosMock ? async (_: string | null) => {} : http.actualizarTelefonoPrueba;
+export const actualizarTelefonoPrueba = impl.actualizarTelefonoPrueba;
 export { usaDatosMock };
 
 /* Reglas de cobranza: en modo mock viven en memoria. */

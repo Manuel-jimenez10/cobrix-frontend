@@ -1,7 +1,7 @@
 import React from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { CheckIcon, CircleIcon, FileTextIcon, ListOrderedIcon, LoaderCircleIcon, SendIcon } from 'lucide-react';
-import type { Canal, ProgresoCobranza } from '../../types/cobranza';
+import { CheckIcon, CircleIcon, FileTextIcon, ListOrderedIcon, LoaderCircleIcon, SendIcon, SparklesIcon } from 'lucide-react';
+import type { ProgresoCobranza } from '../../types/cobranza';
 import { cn } from '../../utils/cn';
 import { EASE_OUT } from '../../utils/motion';
 import { ToneBadge } from '../ui/ToneBadge';
@@ -22,15 +22,14 @@ function Paso({ icono: Icono, estado }: {icono: typeof SendIcon;estado: EstadoPa
 
 }
 
-export function CobranzaProgreso({ progreso, canal }: {progreso: ProgresoCobranza | null;canal: Canal;}) {
+export function CobranzaProgreso({ progreso, conIA }: {progreso: ProgresoCobranza | null;conIA: boolean;}) {
   const fase = progreso?.fase ?? 'analizando';
   const total = progreso?.orden.length ?? 0;
-  const enviados = progreso?.enviados.length ?? 0;
+  const enviados = progreso?.listos.length ?? 0;
   const actual = progreso?.orden.find((o) => o.clienteId === progreso.actualId);
 
   const pasoAnalista: EstadoPaso = fase === 'analizando' ? 'activo' : 'hecho';
   const pasoRedactor: EstadoPaso = fase === 'analizando' ? 'pendiente' : fase === 'listo' ? 'hecho' : 'activo';
-  const pasoEnvio: EstadoPaso = fase === 'listo' ? 'hecho' : enviados > 0 ? 'activo' : 'pendiente';
 
   const pasos = [
   {
@@ -42,18 +41,17 @@ export function CobranzaProgreso({ progreso, canal }: {progreso: ProgresoCobranz
   },
   {
     clave: 'redactor',
-    avatar: <Paso icono={FileTextIcon} estado={pasoRedactor} />,
-    titulo: 'Preparar plantillas',
-    detalle: pasoRedactor === 'pendiente' ? 'Esperando la cola' : pasoRedactor === 'hecho' ? 'Plantilla con el tono de cada intento' : actual ? `Plantilla para ${actual.empresa}…` : 'Preparando la siguiente plantilla…',
+    avatar: <Paso icono={conIA ? SparklesIcon : FileTextIcon} estado={pasoRedactor} />,
+    titulo: conIA ? 'Redactar con IA' : 'Preparar mensajes',
+    detalle:
+    pasoRedactor === 'pendiente' ?
+    'Esperando la cola' :
+    pasoRedactor === 'hecho' ?
+    `${enviados} ${enviados === 1 ? 'mensaje listo' : 'mensajes listos'} para revisar` :
+    actual ?
+    `${conIA ? 'Escribiendo' : 'Preparando'} el mensaje para ${actual.empresa}…` :
+    'Preparando el siguiente mensaje…',
     estado: pasoRedactor
-  },
-  {
-    clave: 'envio',
-    avatar: <Paso icono={SendIcon} estado={pasoEnvio} />,
-
-    titulo: canal === 'whatsapp' ? 'Envío por WhatsApp' : 'Envío al simulador',
-    detalle: `${enviados} de ${total || '—'} mensajes enviados`,
-    estado: pasoEnvio
   }];
 
 
@@ -79,7 +77,7 @@ export function CobranzaProgreso({ progreso, canal }: {progreso: ProgresoCobranz
       {progreso && fase !== 'analizando' && total > 0 &&
       <div>
           <div className="mb-2 flex items-center justify-between text-xs text-muted">
-            <span>Cola de cobranza</span>
+            <span>Mensajes redactados</span>
             <span className="tabular-nums">
               {enviados}/{total}
             </span>
@@ -89,7 +87,7 @@ export function CobranzaProgreso({ progreso, canal }: {progreso: ProgresoCobranz
           </div>
           <ol className="divide-y divide-line rounded-xl border border-line">
             {progreso.orden.map((item, i) => {
-            const enviado = progreso.enviados.includes(item.clienteId);
+            const enviado = progreso.listos.includes(item.clienteId);
             const esActual = progreso.actualId === item.clienteId && !enviado;
             return (
               <motion.li
@@ -105,10 +103,10 @@ export function CobranzaProgreso({ progreso, canal }: {progreso: ProgresoCobranz
                   <span className="w-4">
                     {enviado ?
                   <motion.span initial={{ scale: 0.96, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ duration: 0.16 }} className="block">
-                        <CheckIcon size={16} className="text-ok" aria-label="Enviado" />
+                        <CheckIcon size={16} className="text-ok" aria-label="Listo" />
                       </motion.span> :
                   esActual ?
-                  <LoaderCircleIcon size={16} className="text-brand motion-safe:animate-spin" aria-label="Enviando" /> :
+                  <LoaderCircleIcon size={16} className="text-brand motion-safe:animate-spin" aria-label="Redactando" /> :
 
                   <CircleIcon size={10} className="ml-0.5 text-line" aria-label="En cola" />
                   }

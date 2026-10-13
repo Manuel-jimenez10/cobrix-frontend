@@ -6,6 +6,8 @@ import {
   BanknoteIcon,
   BellRingIcon,
   CalendarCheckIcon,
+  CheckIcon,
+  Clock3Icon,
   DatabaseIcon,
   GlobeIcon,
   LifeBuoyIcon,
@@ -28,8 +30,10 @@ const INDICE: {id: string;titulo: string;sub?: boolean;}[] = [
 { id: 'introduccion', titulo: 'Introducción' },
 { id: 'arquitectura', titulo: 'Arquitectura' },
 { id: 'flujo', titulo: 'Flujo de cobranza' },
+{ id: 'ia', titulo: 'Asistente con IA' },
 { id: 'prioridad', titulo: 'Cálculo de prioridad' },
 { id: 'guia', titulo: 'Guía y recorrido' },
+{ id: 'meta', titulo: 'WhatsApp oficial · próximamente' },
 { id: 'api', titulo: 'API' },
 ...API.map((g) => ({ id: g.id, titulo: g.titulo, sub: true })),
 { id: 'datos', titulo: 'Modelo de datos' },
@@ -39,7 +43,7 @@ const INDICE: {id: string;titulo: string;sub?: boolean;}[] = [
 { id: 'despliegue', titulo: 'Despliegue' }];
 
 
-const STACK = ['React 18', 'Vite', 'TypeScript', 'Tailwind', 'Framer Motion', 'Hono', 'Vercel AI SDK', 'Gemini', 'Zod', 'Supabase', 'WhatsApp Cloud API', 'Render', 'Vercel'];
+const STACK = ['React 18', 'Vite', 'TypeScript', 'Tailwind', 'Framer Motion', 'Hono', 'Vercel AI SDK', 'Gemini', 'Zod', 'Supabase', 'WhatsApp (wa.me)', 'Render', 'Vercel'];
 
 /** Marca la sección visible en el índice lateral. */
 function useSeccionActiva(ids: string[]) {
@@ -97,9 +101,9 @@ function Indice({ activa, onNavegar }: {activa: string;onNavegar?: () => void;})
 
 const LINEAS_STREAM = [
 '{"tipo":"progreso","progreso":{"fase":"analizando"}}',
-'{"tipo":"progreso","progreso":{"fase":"enviando","actualId":"c02"}}',
-'{"tipo":"progreso","progreso":{"fase":"enviando","actualId":"c07"}}',
-'{"tipo":"resultado","resultado":{"enviados":7,"omitidos":[…]}}'];
+'{"tipo":"progreso","progreso":{"fase":"redactando","actualId":"c02"}}',
+'{"tipo":"progreso","progreso":{"fase":"redactando","listos":["c02","c07"]}}',
+'{"tipo":"resultado","resultado":{"borradores":[{"origen":"ia",…}],"omitidos":[…]}}'];
 
 
 function TerminalAnimada() {
@@ -116,7 +120,7 @@ function TerminalAnimada() {
         <span className="h-2.5 w-2.5 rounded-full bg-bad/70" />
         <span className="h-2.5 w-2.5 rounded-full bg-warn/70" />
         <span className="h-2.5 w-2.5 rounded-full bg-ok/70" />
-        <span className="ml-3 font-mono text-[11px] text-muted">POST /cobranza/iniciar</span>
+        <span className="ml-3 font-mono text-[11px] text-muted">POST /cobranza/preparar</span>
       </div>
       <div className="min-h-[188px] space-y-1.5 p-4 font-mono text-[12px] leading-relaxed">
         <p className="text-muted">
@@ -186,16 +190,17 @@ const NODOS = [
 { id: 'web', x: 40, y: 40, titulo: 'Navegador', sub: 'React + Vite · Vercel', icono: GlobeIcon },
 { id: 'api', x: 340, y: 150, titulo: 'API de Cobrix', sub: 'Hono + AI SDK · Render', icono: ServerIcon },
 { id: 'db', x: 640, y: 40, titulo: 'Supabase', sub: 'Auth · Postgres + RLS · Realtime', icono: DatabaseIcon },
-{ id: 'wa', x: 640, y: 260, titulo: 'WhatsApp', sub: 'Cloud API de Meta', icono: MessageCircleIcon },
-{ id: 'ia', x: 40, y: 260, titulo: 'Gemini', sub: 'Guía · Google AI Studio', icono: SparklesIcon }];
+{ id: 'wa', x: 640, y: 260, titulo: 'WhatsApp', sub: 'wa.me · Cloud API pronto', icono: MessageCircleIcon },
+{ id: 'ia', x: 40, y: 260, titulo: 'Gemini', sub: 'Asistente + Guía', icono: SparklesIcon }];
 
 
 const ENLACES: {de: string;a: string;texto: string;curva?: number;}[] = [
 { de: 'web', a: 'db', texto: 'login · Realtime (solo lectura)', curva: -40 },
 { de: 'web', a: 'api', texto: 'REST + NDJSON con JWT' },
 { de: 'api', a: 'db', texto: 'service role' },
-{ de: 'api', a: 'wa', texto: 'plantillas · webhook' },
-{ de: 'api', a: 'ia', texto: 'streamText + tools' }];
+{ de: 'web', a: 'wa', texto: 'abre wa.me con el mensaje', curva: 110 },
+{ de: 'api', a: 'wa', texto: 'Cloud API (próximamente)' },
+{ de: 'api', a: 'ia', texto: 'redacta · sugiere · Guía' }];
 
 
 function Diagrama() {
@@ -257,20 +262,40 @@ function Diagrama() {
 
 const DECISIONES = [
 { icono: ShieldCheckIcon, titulo: 'Multiusuario con RLS', texto: 'Cada fila tiene user_id. El navegador solo puede leer lo suyo; todas las escrituras pasan por la API, que verifica el JWT.' },
-{ icono: SendIcon, titulo: 'Plantillas, no IA, para cobrar', texto: 'Los recordatorios son plantillas aprobadas por Meta: predecibles, instantáneas y válidas fuera de la ventana de 24 h.' },
-{ icono: MessageCircleIcon, titulo: 'La relación la lleva una persona', texto: 'Cuando el cliente responde, nadie le contesta automáticamente: se pausan sus recordatorios y se avisa al equipo.' },
-{ icono: LifeBuoyIcon, titulo: 'Una sola IA: la Guía', texto: 'Enseña a usar la app con cifras reales (tool calling) y nunca inventa datos. Sin API key, responde por reglas.' },
-{ icono: ServerIcon, titulo: 'Canal desacoplado', texto: 'La interfaz CanalMensajeria tiene WhatsAppCloud y Simulador. Agregar Telegram o SMS no toca el resto.' },
+{ icono: SendIcon, titulo: 'Nada sale solo', texto: 'Cobrix prepara cada mensaje y la persona lo envía desde su WhatsApp (enlace wa.me con el texto). Sin aprobaciones ni costo por mensaje mientras llega la API oficial.' },
+{ icono: MessageCircleIcon, titulo: 'La relación la lleva una persona', texto: 'Cuando el cliente responde, nadie le contesta automáticamente: se pausan sus recordatorios, se avisa al equipo y la IA solo sugiere.' },
+{ icono: LifeBuoyIcon, titulo: 'IA que asiste, no que decide', texto: 'Redacta, sugiere respuestas, detecta promesas y resume el día con salidas validadas. Sin API key o sin cuota, todo cae a reglas.' },
+{ icono: ServerIcon, titulo: 'Canal desacoplado', texto: 'CanalMensajeria ya tiene WhatsApp Cloud (listo para cuando Meta apruebe) y Simulador. Agregar Telegram o SMS no toca el resto.' },
 { icono: SparklesIcon, titulo: 'Proveedor de IA intercambiable', texto: 'Con el Vercel AI SDK, pasar de Gemini a OpenAI o Claude es cambiar una línea en agents/modelo.ts.' }];
 
+
+/* ───────────── Asistente con IA ───────────── */
+
+const IA_FUNCIONES = [
+{ icono: SparklesIcon, titulo: 'Redacta cada recordatorio', texto: 'Personaliza el mensaje según el tono que toca, los días de atraso, las facturas y el historial (por ejemplo, si incumplió una promesa).', control: 'debe incluir el saldo exacto y no inventar datos; si no, se usa la plantilla.', api: 'POST /cobranza/preparar · /clientes/:id/redactar' },
+{ icono: MessageCircleIcon, titulo: 'Sugiere 3 respuestas', texto: 'Cuando el cliente contesta, propone respuestas distintas (aceptar, proponer alternativa, pedir información). La persona elige, edita y envía.', control: 'salida con esquema Zod; máximo 3 sugerencias de 400 caracteres.', api: 'POST /clientes/:id/sugerencias' },
+{ icono: CalendarCheckIcon, titulo: 'Detecta promesas de pago', texto: '“Te deposito 5 mil el viernes” se convierte en monto y fecha, y la app ofrece registrar la promesa con todo lleno.', control: 'fecha hoy o posterior y monto ≤ saldo; la persona confirma.', api: 'POST /clientes/:id/sugerencias' },
+{ icono: ListOrderedIcon, titulo: 'Resumen del día', texto: 'Dos o tres frases en Inicio: a quién contestar, qué promesas vencen y el cobro más urgente.', control: 'cifras tomadas de la cartera; se guarda en caché mientras los datos no cambien.', api: 'GET /resumen-diario' }];
+
+
+/* ───────────── WhatsApp oficial (próximamente) ───────────── */
+
+const FECHA_REVISION_META = '12 de octubre de 2026';
+
+const LINEA_META = [
+{ titulo: 'App creada en Meta for Developers', texto: 'Caso de uso “Conectar en WhatsApp” con el producto WhatsApp Business Platform.', estado: 'hecho' },
+{ titulo: 'Integración programada', texto: 'Registro del número por SMS, creación de plantillas, envío por Cloud API y webhook con firma HMAC.', estado: 'hecho' },
+{ titulo: 'Revisión de Meta', texto: `Enviada el ${FECHA_REVISION_META}. Meta revisa la app y verifica el negocio.`, estado: 'actual' },
+{ titulo: 'Conexión disponible en Ajustes', texto: 'Cada empresa conecta su número y el envío pasa a ser automático.', estado: 'pendiente' }] as
+const;
 
 /* ───────────── Flujo ───────────── */
 
 const FLUJO = [
 { icono: ListOrderedIcon, titulo: 'Priorizar', texto: 'Score 0-100 por reglas. La cartera se ordena sola y cada cliente muestra el porqué.', api: 'GET /clientes' },
-{ icono: SendIcon, titulo: 'Enviar recordatorios', texto: 'Plantilla amable → firme → final según los intentos, respetando horario y tono máximo.', api: 'POST /cobranza/iniciar' },
-{ icono: BellRingIcon, titulo: 'El cliente responde', texto: 'Llega por el webhook de WhatsApp: queda en "Requiere atención" y se pausan sus recordatorios.', api: 'POST /webhooks/whatsapp' },
-{ icono: MessageCircleIcon, titulo: 'Tú contestas', texto: 'Texto libre dentro de la ventana de 24 h, desde la conversación del cliente.', api: 'POST /clientes/:id/responder' },
+{ icono: SparklesIcon, titulo: 'Preparar recordatorios', texto: 'La IA redacta cada mensaje con el tono que toca (amable → firme → final), respetando horario y tono máximo. No envía nada.', api: 'POST /cobranza/preparar' },
+{ icono: SendIcon, titulo: 'Enviar desde WhatsApp', texto: 'La persona revisa, edita y abre wa.me con el texto listo; la app registra el envío en la conversación.', api: 'POST /clientes/:id/envio' },
+{ icono: BellRingIcon, titulo: 'El cliente responde', texto: 'La persona pega su respuesta: queda en "Requiere atención" y la IA propone 3 respuestas y detecta si prometió pagar.', api: 'POST /clientes/:id/respuesta' },
 { icono: CalendarCheckIcon, titulo: 'Registrar la promesa', texto: 'Monto y fecha acordados. Los recordatorios esperan hasta ese día.', api: 'POST /clientes/:id/promesa' },
 { icono: BanknoteIcon, titulo: 'Cobrar', texto: 'Promesa cumplida o cliente pagado: se suma a "Recuperado este mes".', api: 'POST /promesas/:id/cumplir' }];
 
@@ -410,7 +435,7 @@ export function Docs() {
             id="introduccion"
             eyebrow="Visión general"
             titulo="Qué es Cobrix"
-            descripcion="Una app de gestión de cobranza para PyMEs mexicanas. Automatiza lo repetitivo —decidir a quién cobrar y mandar recordatorios por WhatsApp— y deja la conversación y los acuerdos de pago en manos de una persona del equipo. La única IA es la Guía, que le enseña al usuario a usar la app.">
+            descripcion="Una app de gestión de cobranza para PyMEs mexicanas. Automatiza lo repetitivo —decidir a quién cobrar y redactar cada recordatorio— y deja el envío, la conversación y los acuerdos de pago en manos de una persona del equipo, que manda cada mensaje desde su propio WhatsApp. La IA asiste en cada paso: redacta, sugiere respuestas, detecta promesas, resume el día y enseña a usar la app.">
 
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
               {[
@@ -451,6 +476,57 @@ export function Docs() {
 
           <Seccion id="flujo" eyebrow="Producto" titulo="Flujo de cobranza" descripcion="Seis pasos, cada uno respaldado por un endpoint. La app y el recorrido guiado siguen este mismo orden.">
             <Flujo />
+          </Seccion>
+
+          <Seccion id="ia" eyebrow="Gemini · Vercel AI SDK" titulo="Asistente de cobranza con IA" descripcion="Cuatro funciones que ayudan a la persona que cobra. Ninguna envía nada: todo se revisa antes de salir. Cada una tiene un respaldo por reglas, así la app nunca se traba si la IA no responde o se agota la cuota.">
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+              {IA_FUNCIONES.map((f, i) =>
+              <Aparece key={f.titulo} retraso={i * 0.05}>
+                  <div className="flex h-full flex-col rounded-2xl border border-line bg-surface p-5">
+                    <div className="flex items-center gap-3">
+                      <span className="grid h-9 w-9 place-items-center rounded-xl bg-promise/15 text-promise">
+                        <f.icono size={16} aria-hidden="true" />
+                      </span>
+                      <p className="font-semibold">{f.titulo}</p>
+                    </div>
+                    <p className="mt-3 text-sm leading-relaxed text-muted">{f.texto}</p>
+                    <p className="mt-2 text-xs leading-relaxed text-muted/90">
+                      <span className="font-medium text-fg">Validación:</span> {f.control}
+                    </p>
+                    <p className="mt-auto pt-4">
+                      <span className="inline-block rounded-md bg-surface-2 px-2 py-1 font-mono text-[11.5px] text-muted">{f.api}</span>
+                    </p>
+                  </div>
+                </Aparece>
+              )}
+            </div>
+            <div className="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-2">
+              <Aparece>
+                <Codigo
+                  titulo="Salida estructurada (agents/asistente.ts)"
+                  codigo={`const { object } = await generateObject({
+  model: modelo(),            // Gemini (agents/modelo.ts)
+  schema: z.object({
+    sugerencias: z.array(z.object({ etiqueta: z.string(), texto: z.string() })).min(2).max(3),
+    promesa: z.object({ hay: z.boolean(), monto: z.number().nullable(), fecha: z.string().nullable() })
+  }),
+  prompt: contexto + historial + ultimoMensaje
+});
+// La fecha debe ser hoy o después y el monto ≤ saldo; si no, se descarta.`} />
+
+              </Aparece>
+              <Aparece retraso={0.05}>
+                <Codigo
+                  titulo="Respaldo por reglas (shared/asistente-reglas.ts)"
+                  codigo={`detectarPromesa('Te deposito 5 mil el viernes', 28500)
+// → { monto: 5000, fecha: '2026-10-16', cita: '…' }
+
+sugerirPorReglas('¿Puedo pagar en dos partes?', ctx).sugerencias[0]
+// → { etiqueta: 'Aceptar dos pagos',
+//     texto: 'Claro, Jorge. Podemos dividir $28,500.00 MXN en dos pagos…' }`} />
+
+              </Aparece>
+            </div>
           </Seccion>
 
           <Seccion id="prioridad" eyebrow="Reglas" titulo="Cálculo de prioridad" descripcion="Determinista, instantáneo y explicable: el equipo siempre sabe por qué un cliente va primero.">
@@ -509,6 +585,60 @@ avisarTutorial('promesa');   // avanza los pasos { tipo: 'evento' }`} />
           </Seccion>
 
           <Seccion
+            id="meta"
+            eyebrow="En revisión de Meta"
+            titulo="WhatsApp oficial · próximamente"
+            descripcion={`Enviamos la app de Cobrix a revisión de Meta el ${FECHA_REVISION_META}. Mientras la aprueban, los mensajes salen desde el WhatsApp de cada persona; cuando la aprueben, el envío pasa a ser automático con la API oficial sin cambiar el flujo.`}>
+            <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1fr_1.1fr]">
+              <Aparece>
+                <ol className="h-full space-y-4 rounded-2xl border border-line bg-surface p-5" aria-label="Avance de la integración con Meta">
+                  {LINEA_META.map((l, i) =>
+                  <li key={l.titulo} className="flex gap-3">
+                      <span
+                      className={cn(
+                        'grid h-7 w-7 shrink-0 place-items-center rounded-full ring-1',
+                        l.estado === 'hecho' ? 'bg-ok/10 text-ok ring-ok/30' : l.estado === 'actual' ? 'bg-promise/10 text-promise ring-promise/40' : 'bg-surface-2 text-muted ring-line'
+                      )}
+                      aria-hidden="true">
+
+                        {l.estado === 'hecho' ? <CheckIcon size={14} /> : l.estado === 'actual' ? <Clock3Icon size={14} className="motion-safe:animate-pulse" /> : <span className="text-xs tabular-nums">{i + 1}</span>}
+                      </span>
+                      <div>
+                        <p className={cn('text-sm font-semibold', l.estado === 'pendiente' && 'text-muted')}>
+                          {l.titulo}
+                          {l.estado === 'actual' && <span className="ml-2 rounded-md bg-promise/10 px-1.5 py-0.5 text-[11px] font-medium text-promise">En curso</span>}
+                        </p>
+                        <p className="mt-0.5 text-sm leading-relaxed text-muted">{l.texto}</p>
+                      </div>
+                    </li>
+                  )}
+                </ol>
+              </Aparece>
+              <Aparece retraso={0.05}>
+                <div className="h-full rounded-2xl border border-line bg-surface p-5">
+                  <p className="font-semibold">Qué cambia cuando Meta apruebe</p>
+                  <ul className="mt-3 space-y-2 text-sm leading-relaxed text-muted">
+                    <li>· Cada empresa conecta su número en Ajustes con un código por SMS (registro por Graph API).</li>
+                    <li>· Cobrix crea solas las 3 plantillas (amable, firme, final) y muestra si Meta las aprobó.</li>
+                    <li>· Los recordatorios salen solos por la Cloud API y las respuestas llegan por el webhook en tiempo real: ya no hace falta pegarlas.</li>
+                    <li>· La IA, la cola de revisión y los reportes siguen igual.</li>
+                  </ul>
+                  <Codigo
+                    className="mt-4"
+                    titulo="Activarlo (cobrix-frontend)"
+                    codigo={`// src/components/ajustes/WhatsAppEnvio.tsx
+export const CONEXION_META_DISPONIBLE = true;   // hoy: false
+
+// cobrix-backend en Render
+WHATSAPP_TOKEN=…  WHATSAPP_WABA_ID=…
+WHATSAPP_VERIFY_TOKEN=…  WHATSAPP_APP_SECRET=…`} />
+
+                </div>
+              </Aparece>
+            </div>
+          </Seccion>
+
+          <Seccion
             id="api"
             eyebrow="Referencia"
             titulo="API"
@@ -532,7 +662,7 @@ avisarTutorial('promesa');   // avanza los pasos { tipo: 'evento' }`} />
                 <div className="h-full rounded-2xl border border-line bg-surface p-5">
                   <p className="font-semibold">Errores</p>
                   <p className="mt-1.5 text-sm text-muted">Siempre con la forma:</p>
-                  <Codigo className="mt-3" titulo="JSON" codigo={`{ "error": "La ventana de 24 h de WhatsApp está cerrada…" }`} />
+                  <Codigo className="mt-3" titulo="JSON" codigo={`{ "error": "Fuera del horario de cobranza (lun–vie 9:00–19:00)…" }`} />
                   <ul className="mt-3 grid grid-cols-2 gap-x-4 gap-y-1 text-sm text-muted">
                     <li><span className="font-mono text-fg">400</span> datos inválidos (Zod)</li>
                     <li><span className="font-mono text-fg">401</span> sin sesión o expirada</li>
@@ -577,7 +707,7 @@ for (;;) {
                 <div className="mt-4 space-y-2">
                   {g.endpoints.map((e, i) =>
                 <Aparece key={e.metodo + e.ruta} retraso={Math.min(i * 0.03, 0.2)}>
-                      <TarjetaEndpoint e={e} abiertoInicial={e.ruta === '/cobranza/iniciar'} />
+                      <TarjetaEndpoint e={e} abiertoInicial={e.ruta === '/cobranza/preparar'} />
                     </Aparece>
                 )}
                 </div>
@@ -610,16 +740,18 @@ for (;;) {
 ├── middleware/auth   JWT de Supabase, perfil y límite de IA
 ├── routes/
 │   ├── datos.ts      cartera, ajustes, reglas, demo
-│   ├── agentes.ts    cobranza (NDJSON), conversación, Guía
-│   └── webhook.ts    WhatsApp entrante (firma HMAC)
+│   ├── agentes.ts    cobranza (NDJSON), conversación, asistente, Guía
+│   └── webhook.ts    WhatsApp entrante (próximamente, firma HMAC)
 ├── services/
-│   └── cobranza.ts   iniciar, recibir, responder, promesa
+│   ├── cobranza.ts   preparar, registrar envío, respuesta, promesa
+│   └── whatsapp-registro.ts  alta de números (próximamente)
 ├── agents/
 │   ├── analista.ts   prioridad por reglas
-│   ├── redactor.ts   plantillas
+│   ├── redactor.ts   plantillas base
+│   ├── asistente.ts  IA: redactar, sugerir, promesas, resumen
 │   ├── guia.ts       IA: manual + tools
 │   └── modelo.ts     proveedor de IA (Gemini)
-├── channels/         WhatsApp Cloud API y simulador
+├── channels/         WhatsApp Cloud API (próximamente) y simulador
 ├── domain/           acceso a datos, lógica y datos demo
 └── shared/           tipos, reglas, plantillas, políticas
 supabase/schema.sql   tablas, RLS, índices y Realtime
@@ -639,12 +771,12 @@ render.yaml           Blueprint de Render
 ├── contexts/            Auth, Cobranza, Guía, Tutorial, UI
 ├── pages/               Inicio, Cartera, Promesas, Guía, Ajustes, Docs
 ├── components/
-│   ├── cliente/         conversación, composer, promesa
-│   ├── cartera/         lista, filtros, envío de recordatorios
-│   ├── dashboard/       KPIs, atención, actividad
+│   ├── cliente/         conversación, composer con sugerencias, promesa
+│   ├── cartera/         lista, filtros, cola de envío por WhatsApp
+│   ├── dashboard/       resumen del día, KPIs, atención, actividad
 │   ├── guia/            chat y panel de la Guía
 │   └── tour/            recorrido: pasos y Spotlight
-└── utils/tutorial.ts    eventos del recorrido
+└── utils/               wa.me, reglas del asistente, recorrido
 vercel.json              rewrite de la SPA`} />
 
               </Aparece>
@@ -720,7 +852,8 @@ npm run dev                  # http://localhost:5173`} />
               { t: 'Render (API)', d: 'New → Blueprint con el repo cobrix-backend (usa render.yaml). Pega las variables y en CORS_ORIGINS la URL de Vercel. El workflow de GitHub hace ping a /health cada 5 min con el secreto RENDER_HEALTH_URL.' },
               { t: 'Vercel (frontend)', d: 'Importa cobrix-frontend con el preset Vite y agrega las tres variables VITE_*. vercel.json ya resuelve las rutas de la SPA.' },
               { t: 'Google OAuth', d: 'Google Auth Platform → cliente “Aplicación web”. Redirect URI: https://<proyecto>.supabase.co/auth/v1/callback. Con los permisos básicos no hace falta verificar la app.' },
-              { t: 'WhatsApp', d: 'En Meta: producto WhatsApp, cuenta de WhatsApp Business con método de pago, token de usuario de sistema y webhook https://<api>/webhooks/whatsapp suscrito a “messages”. En Render: WHATSAPP_TOKEN, WHATSAPP_WABA_ID, WHATSAPP_VERIFY_TOKEN y WHATSAPP_APP_SECRET. Cada empresa conecta su número desde Ajustes (código por SMS) y Cobrix crea las plantillas.' }].
+              { t: 'Gemini (IA)', d: 'Crea una API key gratuita en Google AI Studio y ponla en Render como GOOGLE_GENERATIVE_AI_API_KEY. Sin ella, el asistente usa plantillas y reglas, y la Guía responde con preguntas frecuentes.' },
+              { t: 'WhatsApp oficial (cuando Meta apruebe)', d: `Hoy no hace falta: los mensajes salen por wa.me. La app se envió a revisión de Meta el ${FECHA_REVISION_META}. Al aprobarse: webhook https://<api>/webhooks/whatsapp suscrito a “messages”, token de usuario de sistema y método de pago en la cuenta de WhatsApp Business; en Render WHATSAPP_TOKEN, WHATSAPP_WABA_ID, WHATSAPP_VERIFY_TOKEN y WHATSAPP_APP_SECRET.` }].
               map((p, i) =>
               <Aparece key={p.t} retraso={i * 0.05}>
                   <li className="flex gap-4 rounded-2xl border border-line bg-surface p-5">

@@ -4,11 +4,10 @@ import { motion } from 'framer-motion';
 import { BotIcon, DatabaseIcon, GraduationCapIcon, LogOutIcon, MessageCircleIcon, MonitorSmartphoneIcon, MoonIcon, PhoneIcon, SunIcon, Trash2Icon } from 'lucide-react';
 import { toast } from 'sonner';
 import { PoliticasForm } from '../components/ajustes/PoliticasForm';
-import { WhatsAppConexion } from '../components/ajustes/WhatsAppConexion';
+import { WhatsAppEnvio } from '../components/ajustes/WhatsAppEnvio';
 import { MessageBubble } from '../components/cliente/MessageBubble';
 import { MobileHeader } from '../components/layout/MobileHeader';
 import { Button } from '../components/ui/Button';
-import { Skeleton } from '../components/ui/Skeleton';
 import { ToneBadge } from '../components/ui/ToneBadge';
 import { useAuth } from '../contexts/AuthContext';
 import { useTutorial } from '../contexts/TutorialContext';
@@ -20,13 +19,12 @@ import * as api from '../services/api';
 import type { Ajustes as AjustesTipo, Canal, Tono } from '../types/cobranza';
 import { cn } from '../utils/cn';
 import { llenarPlantilla } from '../utils/cobranza';
-import { tiempoRelativo } from '../utils/format';
 import { usaDatosMock } from '../utils/env';
 import { EASE_OUT } from '../utils/motion';
 
 const CANALES: {valor: Canal;etiqueta: string;descripcion: string;icono: typeof MessageCircleIcon;}[] = [
-{ valor: 'whatsapp', etiqueta: 'WhatsApp', descripcion: 'Los mensajes llegan al WhatsApp real de cada cliente.', icono: MessageCircleIcon },
-{ valor: 'simulador', etiqueta: 'Simulador', descripcion: 'Modo demo: nada sale de la app y puedes simular las respuestas de tus clientes.', icono: MonitorSmartphoneIcon }];
+{ valor: 'whatsapp', etiqueta: 'WhatsApp', descripcion: 'Cobrix abre tu WhatsApp con el mensaje listo y tú lo envías al cliente.', icono: MessageCircleIcon },
+{ valor: 'simulador', etiqueta: 'Simulador', descripcion: 'Modo demo: no se abre WhatsApp; los envíos solo se registran en Cobrix.', icono: MonitorSmartphoneIcon }];
 
 
 function Seccion({ titulo, descripcion, children, id }: {titulo: string;descripcion?: string;children: React.ReactNode;id?: string;}) {
@@ -68,7 +66,7 @@ export function Ajustes() {
     return () => clearTimeout(t);
   }, [hash]);
   const navigate = useNavigate();
-  const { canal, cambiarCanal, cargarEjemplo, vaciar, clientes } = useCobranza();
+  const { canal, cambiarCanal, cargarEjemplo, vaciar, clientes, setTelefonoPrueba } = useCobranza();
   const { tema, alternarTema } = useUI();
   const [ajustes, setAjustes] = useState<AjustesTipo | null>(null);
   const [tono, setTono] = useState<Tono>('amable');
@@ -88,9 +86,12 @@ export function Ajustes() {
   const guardarTelefono = async () => {
     setGuardandoTel(true);
     try {
-      await api.actualizarTelefonoPrueba(telefono.trim() || null);
-      toast.success(telefono.trim() ? 'Número de prueba guardado' : 'Número de prueba eliminado', {
-        description: telefono.trim() ? 'Los mensajes de WhatsApp de la demo llegarán a este número.' : undefined
+      const valor = telefono.trim() || null;
+      await api.actualizarTelefonoPrueba(valor);
+      setTelefonoPrueba(valor);
+      setAjustes((a) => a ? { ...a, telefonoPrueba: valor } : a);
+      toast.success(valor ? 'Número de prueba guardado' : 'Número de prueba eliminado', {
+        description: valor ? 'WhatsApp se abrirá con este número en lugar del de cada cliente.' : 'WhatsApp se abrirá con el número de cada cliente.'
       });
     } catch (e) {
       toast.error('No se pudo guardar', { description: (e as Error).message });
@@ -138,7 +139,7 @@ export function Ajustes() {
               <p className="truncate text-xs text-muted">{perfil.empresa}</p>
               <p className="mt-1.5 flex items-center gap-1.5 text-xs text-muted">
                 <BotIcon size={13} aria-hidden="true" />
-                {perfil.iaActiva ? `Guía con IA · ${perfil.modelo}` : 'Guía en modo preguntas frecuentes (sin API key de IA)'}
+                {perfil.iaActiva ? `Asistente y Guía con IA · ${perfil.modelo}` : 'Asistente con plantillas y reglas (sin API key de IA)'}
               </p>
             </div>
             <Button variante="secundario" icono={LogOutIcon} onClick={() => void salir()}>
@@ -147,7 +148,7 @@ export function Ajustes() {
           </div>
         </Seccion>
     }
-      <Seccion titulo="Canal activo" descripcion="Por dónde salen los recordatorios y tus respuestas.">
+      <Seccion titulo="Canal activo" descripcion="Cómo salen los recordatorios y tus respuestas.">
         <div role="radiogroup" aria-label="Canal activo" className="grid grid-cols-1 gap-2 sm:grid-cols-2">
           {CANALES.map((c) => {
           const activo = canal === c.valor;
@@ -176,43 +177,41 @@ export function Ajustes() {
         </div>
       </Seccion>
 
-      <Seccion id="reglas" titulo="Reglas de cobranza" descripcion="Cuándo se pueden enviar recordatorios automáticos y qué tan firmes pueden ser.">
+      <Seccion id="reglas" titulo="Reglas de cobranza" descripcion="Cuándo se pueden preparar recordatorios y qué tan firmes pueden ser.">
         <PoliticasForm />
       </Seccion>
 
-      <Seccion id="whatsapp" titulo="Conexión con WhatsApp" descripcion="El número de tu empresa desde el que salen los recordatorios y al que te responden tus clientes.">
+      <Seccion id="whatsapp" titulo="WhatsApp" descripcion="Cómo salen tus mensajes hoy y la conexión oficial con Meta que viene en camino.">
         <div className="space-y-4">
-          <WhatsAppConexion />
-          {!usaDatosMock && !perfil?.esAnonimo &&
-        <div className="rounded-xl border border-line p-4">
-                <label htmlFor="tel-prueba" className="flex items-center gap-2 text-sm font-medium">
-                  <PhoneIcon size={14} className="text-muted" aria-hidden="true" />
-                  Tu WhatsApp para pruebas (modo demo)
-                </label>
-                <p className="mt-1 text-xs leading-relaxed text-muted">
-                  El número de prueba de Meta solo puede escribir a destinatarios registrados. Todos los mensajes de la demo se redirigen aquí, y lo que respondas desde tu teléfono aparece en la conversación del cliente.
-                </p>
-                <div className="mt-3 flex flex-col gap-2 sm:flex-row">
-                  <input
-              id="tel-prueba"
-              type="tel"
-              inputMode="tel"
-              autoComplete="tel"
-              placeholder="+52 55 1234 5678"
-              value={telefono}
-              onChange={(e) => setTelefono(e.target.value)}
-              className="h-11 min-w-0 flex-1 rounded-lg border border-line bg-surface-2 px-3.5 text-[15px] tabular-nums outline-none transition-colors placeholder:text-muted/70 focus:border-brand/70 focus:ring-2 focus:ring-brand/20 lg:h-9 lg:text-sm" />
-            
-                  <Button variante="secundario" onClick={() => void guardarTelefono()} disabled={guardandoTel || telefono.trim() === (ajustes?.telefonoPrueba ?? '')}>
-                    {guardandoTel ? 'Guardando…' : 'Guardar'}
-                  </Button>
-                </div>
-              </div>
-        }
+          <WhatsAppEnvio />
+          <div className="rounded-xl border border-line p-4" data-tour="telefono-pruebas">
+            <label htmlFor="tel-prueba" className="flex items-center gap-2 text-sm font-medium">
+              <PhoneIcon size={14} className="text-muted" aria-hidden="true" />
+              Tu WhatsApp para pruebas
+            </label>
+            <p className="mt-1 text-xs leading-relaxed text-muted">
+              Los clientes de ejemplo tienen números ficticios. Si escribes aquí tu número, WhatsApp se abrirá con tu chat en lugar del de cada cliente: así ves exactamente lo que recibirían. Déjalo vacío para cobrar a clientes reales.
+            </p>
+            <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+              <input
+                id="tel-prueba"
+                type="tel"
+                inputMode="tel"
+                autoComplete="tel"
+                placeholder="+52 55 1234 5678"
+                value={telefono}
+                onChange={(e) => setTelefono(e.target.value)}
+                className="h-11 min-w-0 flex-1 rounded-lg border border-line bg-surface-2 px-3.5 text-[15px] tabular-nums outline-none transition-colors placeholder:text-muted/70 focus:border-brand/70 focus:ring-2 focus:ring-brand/20 lg:h-9 lg:text-sm" />
+
+              <Button variante="secundario" onClick={() => void guardarTelefono()} disabled={guardandoTel || telefono.trim() === (ajustes?.telefonoPrueba ?? '')}>
+                {guardandoTel ? 'Guardando…' : 'Guardar'}
+              </Button>
+            </div>
+          </div>
         </div>
       </Seccion>
 
-      <Seccion titulo="Plantillas de mensaje" descripcion="Se usa una por intento: amable, luego firme y al final el aviso final. Son plantillas aprobadas por Meta, así que se pueden enviar en cualquier momento.">
+      <Seccion titulo="Plantillas de mensaje" descripcion="La base de cada intento: amable, luego firme y al final el aviso final. Con IA, el asistente las personaliza para cada cliente; tú siempre revisas antes de enviar.">
         <div role="tablist" aria-label="Plantillas" className="mb-4 inline-flex rounded-lg border border-line p-1">
           {plantillas.map((p) =>
         <button

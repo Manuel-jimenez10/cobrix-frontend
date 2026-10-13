@@ -149,17 +149,57 @@ export interface ItemColaCobranza {
 }
 
 export interface ProgresoCobranza {
-  fase: 'analizando' | 'redactando' | 'enviando' | 'listo';
+  fase: 'analizando' | 'redactando' | 'listo';
   orden: ItemColaCobranza[];
   actualId: string | null;
-  enviados: string[];
+  /** Clientes cuyo mensaje ya está redactado. */
+  listos: string[];
 }
 
-export interface ResultadoCobranza {
-  enviados: number;
-  mensajes: Mensaje[];
-  /** Clientes que no recibieron recordatorio y por qué. */
-  omitidos?: {clienteId: string;empresa: string;motivo: string;}[];
+/** Recordatorio listo para que una persona lo revise y lo envíe desde su WhatsApp. */
+export interface Borrador {
+  clienteId: string;
+  empresa: string;
+  nombre: string;
+  /** Teléfono al que se abre WhatsApp (en modo demo, el de pruebas). */
+  telefono: string;
+  deuda: number;
+  tono: Tono;
+  texto: string;
+  /** 'ia' = lo redactó el asistente; 'plantilla' = texto base. */
+  origen: OrigenTexto;
+}
+
+export type OrigenTexto = 'ia' | 'plantilla';
+
+export interface ResultadoPreparacion {
+  borradores: Borrador[];
+  /** Clientes que no recibirán recordatorio y por qué. */
+  omitidos: {clienteId: string;empresa: string;motivo: string;}[];
+}
+
+export interface Sugerencia {
+  etiqueta: string;
+  texto: string;
+}
+
+export interface PromesaDetectada {
+  monto: number;
+  /** AAAA-MM-DD */
+  fecha: string;
+  cita: string;
+}
+
+export interface ResultadoSugerencias {
+  sugerencias: Sugerencia[];
+  promesa: PromesaDetectada | null;
+  origen: OrigenTexto;
+}
+
+export interface ResumenDia {
+  texto: string;
+  clientes: {id: string;empresa: string;}[];
+  origen: OrigenTexto;
 }
 
 export interface Ajustes {

@@ -40,7 +40,7 @@ export const API: GrupoApi[] = [
   {
     metodo: 'GET',
     ruta: '/webhooks/whatsapp',
-    resumen: 'Verificación del webhook de Meta',
+    resumen: 'Verificación del webhook de Meta (próximamente)',
     acceso: 'publica',
     parametros: [
     { nombre: 'hub.mode', tipo: 'query', descripcion: 'Siempre "subscribe".' },
@@ -53,7 +53,7 @@ export const API: GrupoApi[] = [
   {
     metodo: 'POST',
     ruta: '/webhooks/whatsapp',
-    resumen: 'Mensajes entrantes de WhatsApp',
+    resumen: 'Mensajes entrantes de WhatsApp (próximamente)',
     detalle:
     'Valida X-Hub-Signature-256 con WHATSAPP_APP_SECRET, ignora duplicados y ubica al cliente por su teléfono (o por el teléfono de pruebas del perfil). El mensaje se guarda y el cliente queda en "requiere atención".',
     acceso: 'publica',
@@ -141,7 +141,7 @@ export const API: GrupoApi[] = [
     metodo: 'PUT',
     ruta: '/politicas',
     resumen: 'Guardar reglas de cobranza',
-    detalle: 'Se valida con Zod. Fuera del horario, /cobranza/iniciar responde 409.',
+    detalle: 'Se valida con Zod. Fuera del horario, /cobranza/preparar responde 409.',
     acceso: 'sesion',
     cuerpo: `{ …mismo objeto que GET /politicas… }`,
     respuesta: `{ …reglas guardadas… }`,
@@ -254,45 +254,45 @@ export const API: GrupoApi[] = [
 {
   id: 'api-cobranza',
   titulo: 'Cobranza y conversaciones',
-  descripcion: 'Envío de recordatorios con plantillas y conversación con el cliente, que lleva una persona del equipo.',
+  descripcion: 'Cobrix prepara cada mensaje y una persona lo envía desde su WhatsApp (wa.me); la app registra el envío y las respuestas del cliente.',
   endpoints: [
   {
     metodo: 'POST',
-    ruta: '/cobranza/iniciar',
-    resumen: 'Enviar recordatorios',
+    ruta: '/cobranza/preparar',
+    resumen: 'Preparar recordatorios (no envía nada)',
     detalle:
-    'Recalcula la prioridad, ordena la cola y envía a cada cliente la plantilla que le toca (amable → firme → final, limitada por el tono máximo). Omite a quien espera respuesta, tiene promesa vigente, está en revisión o no tiene saldo.',
+    'Recalcula la prioridad, ordena la cola y la IA redacta el mensaje de cada cliente con el tono que toca (amable → firme → final, limitado por el tono máximo). Omite a quien espera respuesta, tiene promesa vigente, está en revisión o no tiene saldo. Devuelve borradores con el teléfono al que se abre WhatsApp.',
     acceso: 'ia',
     stream: true,
-    cuerpo: `{ "clienteIds": ["c02", "c07", "c09"], "tono": "firme" }   // tono opcional`,
-    respuesta: `{"tipo":"progreso","progreso":{"fase":"analizando","orden":[],"actualId":null,"enviados":[]}}
-{"tipo":"progreso","progreso":{"fase":"enviando","orden":[…],"actualId":"c02","enviados":[]}}
-{"tipo":"progreso","progreso":{"fase":"listo","orden":[…],"actualId":null,"enviados":["c02","c07"]}}
-{"tipo":"resultado","resultado":{"enviados":2,"mensajes":[…],
+    cuerpo: `{ "clienteIds": ["c02", "c07", "c09"], "tono": "firme", "conIA": true }   // tono y conIA opcionales`,
+    respuesta: `{"tipo":"progreso","progreso":{"fase":"analizando","orden":[],"actualId":null,"listos":[]}}
+{"tipo":"progreso","progreso":{"fase":"redactando","orden":[…],"actualId":"c02","listos":[]}}
+{"tipo":"progreso","progreso":{"fase":"listo","orden":[…],"actualId":null,"listos":["c02","c07"]}}
+{"tipo":"resultado","resultado":{
+  "borradores":[{"clienteId":"c02","empresa":"Taller Hernández","telefono":"+52 55 …","tono":"firme",
+                 "texto":"Hola Ricardo, seguimos sin registrar…","origen":"ia"}],
   "omitidos":[{"clienteId":"c09","empresa":"Transportes Gómez","motivo":"Tiene una promesa de pago vigente"}]}}`,
     errores: [
-    { codigo: 409, cuando: 'Fuera del horario de envíos configurado.' },
-    { codigo: 429, cuando: 'Límite de uso por usuario alcanzado.' }]
+    { codigo: 409, cuando: 'Fuera del horario de cobranza configurado.' }]
 
   },
   {
     metodo: 'POST',
-    ruta: '/cobranza/responder',
-    resumen: 'Simulador: escribir como el cliente',
-    detalle: 'Guarda el mensaje como si viniera del cliente y lo marca como "requiere atención". Ninguna IA le contesta.',
+    ruta: '/clientes/:id/envio',
+    resumen: 'Registrar un mensaje enviado desde WhatsApp',
+    detalle: 'El frontend abre https://wa.me/<teléfono>?text=<mensaje> y registra el envío. Con tono es un recordatorio (cuenta para el siguiente tono); sin tono, una respuesta del equipo.',
     acceso: 'sesion',
-    cuerpo: `{ "clienteId": "c02", "mensaje": "No reconozco ese cargo" }`,
-    respuesta: `{ "mensaje": { "id": "…", "rol": "cliente", "contenido": "No reconozco ese cargo", "fecha": "…" } }`
+    cuerpo: `{ "texto": "Hola Ricardo…", "tono": "firme", "origen": "ia" }   // origen: ia | plantilla | manual`,
+    respuesta: `{ "mensaje": { "rol": "agente", "agente": "redactor", "tono": "firme", "contenido": "Hola Ricardo…", … } }`
   },
   {
     metodo: 'POST',
-    ruta: '/clientes/:id/responder',
-    resumen: 'Responder como equipo',
-    detalle: 'Texto libre por el canal activo. Por WhatsApp solo sale con la ventana de 24 h abierta (regla de Meta).',
+    ruta: '/clientes/:id/respuesta',
+    resumen: 'Registrar lo que respondió el cliente',
+    detalle: 'La persona pega el mensaje que recibió por WhatsApp. Queda como "requiere atención" y se pausan sus recordatorios. Ninguna IA le contesta.',
     acceso: 'sesion',
-    cuerpo: `{ "texto": "Claro, ¿qué fecha te funciona?" }`,
-    respuesta: `{ "mensaje": { "rol": "agente", "agente": null, "contenido": "Claro, ¿qué fecha te funciona?", … } }`,
-    errores: [{ codigo: 409, cuando: 'Ventana de 24 h cerrada o WhatsApp rechazó el mensaje.' }]
+    cuerpo: `{ "texto": "Te deposito 5 mil el viernes" }`,
+    respuesta: `{ "mensaje": { "id": "…", "rol": "cliente", "contenido": "Te deposito 5 mil el viernes", "fecha": "…" } }`
   },
   {
     metodo: 'POST',
@@ -307,9 +307,53 @@ export const API: GrupoApi[] = [
 
 },
 {
+  id: 'api-asistente',
+  titulo: 'Asistente con IA',
+  descripcion: 'Ayuda a la persona que cobra; nunca envía nada. Si la IA no está disponible o se agotó la cuota, cada ruta responde con reglas ("origen": "plantilla").',
+  endpoints: [
+  {
+    metodo: 'POST',
+    ruta: '/clientes/:id/redactar',
+    resumen: 'Redactar o reescribir un recordatorio',
+    detalle: 'Usa el tono pedido o el que toca por intentos. El texto debe incluir el saldo exacto; si no, se devuelve la plantilla.',
+    acceso: 'ia',
+    cuerpo: `{ "tono": "amable" }   // opcional`,
+    respuesta: `{ "texto": "Hola Jorge, buen día…", "tono": "amable", "origen": "ia" }`
+  },
+  {
+    metodo: 'POST',
+    ruta: '/clientes/:id/sugerencias',
+    resumen: '3 respuestas sugeridas + promesa detectada',
+    detalle: 'Lee el último mensaje del cliente y el historial. La promesa solo se devuelve con fecha de hoy en adelante y monto ≤ saldo.',
+    acceso: 'ia',
+    respuesta: `{
+  "sugerencias": [
+    { "etiqueta": "Confirmar la promesa", "texto": "Perfecto, Jorge. Quedamos en que el viernes…" },
+    { "etiqueta": "Pedir comprobante",    "texto": "Gracias, Jorge. Cuando hagas el pago…" },
+    { "etiqueta": "Recordar el total",    "texto": "Te recuerdo que el saldo total es…" }
+  ],
+  "promesa": { "monto": 5000, "fecha": "2026-10-16", "cita": "Te deposito 5 mil el viernes" },
+  "origen": "ia"
+}`
+  },
+  {
+    metodo: 'GET',
+    ruta: '/resumen-diario',
+    resumen: 'Resumen del día',
+    detalle: 'Qué hacer primero y por qué, en 2–3 frases. Se guarda en caché mientras la cartera no cambie (no consume cuota).',
+    acceso: 'ia',
+    respuesta: `{
+  "texto": "Primero contesta a Ferretería López: te escribió y espera tu respuesta. Después, el cobro más urgente es Taller Hernández…",
+  "clientes": [{ "id": "c01", "empresa": "Ferretería López" }, { "id": "c02", "empresa": "Taller Hernández" }],
+  "origen": "ia"
+}`
+  }]
+
+},
+{
   id: 'api-whatsapp',
-  titulo: 'WhatsApp de la empresa',
-  descripcion: 'Cada cuenta registra su propio número en la cuenta de WhatsApp Business de Cobrix, sin entrar a Meta. Requiere WHATSAPP_TOKEN y WHATSAPP_WABA_ID en el servidor.',
+  titulo: 'WhatsApp oficial · próximamente',
+  descripcion: 'Ya programado; se activa cuando Meta apruebe la app (enviada a revisión el 12 de octubre de 2026). Cada cuenta registrará su número en la cuenta de WhatsApp Business de Cobrix, sin entrar a Meta. Requiere WHATSAPP_TOKEN y WHATSAPP_WABA_ID.',
   endpoints: [
   {
     metodo: 'GET',

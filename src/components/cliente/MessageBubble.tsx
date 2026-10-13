@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { CheckCheckIcon } from 'lucide-react';
+import { CheckIcon } from 'lucide-react';
 import type { Mensaje } from '../../types/cobranza';
 import { cn } from '../../utils/cn';
 import { formatHora } from '../../utils/format';
@@ -16,7 +16,7 @@ export function MessageBubble({ mensaje: m, streaming = false }: MessageBubblePr
   const esAgente = m.rol === 'agente';
   // agente null (o el antiguo 'negociador') = lo escribió una persona del equipo.
   const deEquipo = esAgente && (m.agente === null || m.agente === 'negociador');
-  const etiqueta = !esAgente ? null : deEquipo ? 'Tu equipo' : m.esPlantilla || m.agente === 'redactor' ? 'Recordatorio automático' : 'Cobrix';
+  const etiqueta = !esAgente ? null : deEquipo ? 'Tu equipo' : m.esPlantilla || m.agente === 'redactor' ? 'Recordatorio' : 'Cobrix';
   return (
     <motion.div
       initial={{ opacity: 0, y: 6 }}
@@ -44,7 +44,7 @@ export function MessageBubble({ mensaje: m, streaming = false }: MessageBubblePr
         {!streaming &&
         <div className="mt-1 flex items-center justify-end gap-1 text-[11px] tabular-nums text-muted">
             {formatHora(m.fecha)}
-            {esAgente && <CheckCheckIcon size={13} className="text-promise" aria-label="Leído" />}
+            {esAgente && <CheckIcon size={13} className="text-muted" aria-label="Enviado" />}
           </div>
         }
       </div>

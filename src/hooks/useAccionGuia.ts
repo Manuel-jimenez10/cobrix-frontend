@@ -36,7 +36,7 @@ export function useAccionGuia() {
           return ir(a.clienteId ? `/cartera/${a.clienteId}` : '/cartera', {
             objetivo: ['responder'],
             titulo: `Contéstale a ${cliente?.empresa ?? 'tu cliente'}`,
-            texto: 'Con “Tú (equipo)” seleccionado, escribe o toca una sugerencia y presiona enviar.'
+            texto: 'Con “Tú respondes” seleccionado, toca una sugerencia de la IA o escribe, y presiona el botón verde para abrir tu WhatsApp.'
           });
         case 'atencion':{
             setFiltrosCartera((f) => ({ ...f, estado: 'todos', prioridad: 'todas', busqueda: '', atencion: true }));
@@ -63,12 +63,12 @@ export function useAccionGuia() {
           return ir('/', {
             objetivo: ['iniciar-cobranza'],
             titulo: 'Presiona “Iniciar cobranza”',
-            texto: 'Verás a quién se le enviará el recordatorio antes de confirmar.'
+            texto: 'Verás a quién se le escribirá; luego revisas cada mensaje y lo envías desde tu WhatsApp.'
           });
         case 'reglas':
           return ir('/ajustes#reglas', { objetivo: ['reglas'], titulo: 'Reglas de cobranza', texto: 'Aquí defines el horario de envíos y el tono máximo. Al terminar presiona “Guardar reglas”.' });
         case 'whatsapp':
-          return ir('/ajustes#whatsapp', { objetivo: ['conectar-whatsapp', 'whatsapp'], titulo: 'Conecta el WhatsApp de tu empresa', texto: 'Presiona “Conectar mi WhatsApp”, escribe tu número y confirma el código que te llega por SMS.' });
+          return ir('/ajustes#whatsapp', { objetivo: ['telefono-pruebas', 'whatsapp'], titulo: 'Tu WhatsApp', texto: 'Los mensajes salen desde tu WhatsApp. Para probar con los clientes de ejemplo, escribe aquí tu número y presiona “Guardar”.' });
         case 'ajustes':
           return ir('/ajustes');
         case 'recorrido':{

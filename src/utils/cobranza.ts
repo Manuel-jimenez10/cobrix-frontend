@@ -39,3 +39,25 @@ export function grupoDePromesa(p: PromesaPago): GrupoPromesa {
   if (d <= 7) return 'semana';
   return 'proximas';
 }
+/**
+ * Enlace que abre WhatsApp (app en el teléfono, WhatsApp Web o de escritorio en la
+ * computadora) con el chat del cliente y el mensaje ya escrito. Solo falta presionar enviar.
+ * Números de 10 dígitos se toman como México (+52).
+ */
+export function enlaceWhatsApp(telefono: string, texto: string): string {
+  let digitos = telefono.replace(/\D/g, '');
+  if (digitos.length === 10) digitos = `52${digitos}`;
+  return `https://wa.me/${digitos}?text=${encodeURIComponent(texto)}`;
+}
+
+/**
+ * Abre WhatsApp. Debe llamarse directo en el clic (sin await antes): si no,
+ * el navegador del teléfono lo bloquea como ventana emergente.
+ */
+export function abrirWhatsApp(telefono: string, texto: string): void {
+  const url = enlaceWhatsApp(telefono, texto);
+  // Sin 'noopener' en las opciones: con él, window.open siempre devuelve null.
+  const ventana = window.open(url, '_blank');
+  if (ventana) ventana.opener = null;
+  else window.location.href = url;
+}
