@@ -12,6 +12,7 @@ import { Ajustes } from './pages/Ajustes';
 import { Cartera } from './pages/Cartera';
 import { Guia } from './pages/Guia';
 import { Inicio } from './pages/Inicio';
+import { Legal } from './pages/Legal';
 import { Promesas } from './pages/Promesas';
 
 interface AppProps {
@@ -37,7 +38,14 @@ export function App({ tema = 'oscuro', datosDeEjemplo = true }: AppProps) {
     <MotionConfig reducedMotion="user">
       <BrowserRouter>
         <UIProvider temaInicial={tema}>
-          <AuthProvider>
+          <Routes>
+            {/* Páginas públicas (sin sesión): las pide Google para el inicio de sesión con OAuth. */}
+            <Route path="privacidad" element={<Legal tipo="privacidad" />} />
+            <Route path="terminos" element={<Legal tipo="terminos" />} />
+            <Route
+              path="*"
+              element={
+              <AuthProvider>
             <AuthGate>
               <DatosDeUsuario iniciarVacio={!datosDeEjemplo}>
                 <Routes>
@@ -55,6 +63,9 @@ export function App({ tema = 'oscuro', datosDeEjemplo = true }: AppProps) {
               </DatosDeUsuario>
             </AuthGate>
           </AuthProvider>
+              } />
+
+          </Routes>
         </UIProvider>
       </BrowserRouter>
     </MotionConfig>);

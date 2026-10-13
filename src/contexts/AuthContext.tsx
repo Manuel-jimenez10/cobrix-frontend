@@ -16,6 +16,7 @@ interface AuthValor {
   entrar: (email: string, password: string) => Promise<void>;
   registrarse: (datos: {email: string;password: string;nombre: string;empresa: string;}) => Promise<{requiereConfirmacion: boolean;}>;
   entrarComoInvitado: () => Promise<void>;
+  entrarConGoogle: () => Promise<void>;
   salir: () => Promise<void>;
 }
 
@@ -91,13 +92,19 @@ export function AuthProvider({ children }: {children: ReactNode;}) {
     if (error) throw traducir(error);
   }, []);
 
+  // Solo pide nombre, correo y foto (openid email profile): Google no exige verificar la app.
+  const entrarConGoogle = useCallback(async () => {
+    const { error } = await supabase!.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: window.location.origin } });
+    if (error) throw traducir(error);
+  }, []);
+
   const salir = useCallback(async () => {
     await supabase?.auth.signOut();
   }, []);
 
   const valor = useMemo<AuthValor>(
-    () => ({ listo, sesion, perfil, errorPerfil, reintentarPerfil, modoDemoLocal, entrar, registrarse, entrarComoInvitado, salir }),
-    [listo, sesion, perfil, errorPerfil, reintentarPerfil, modoDemoLocal, entrar, registrarse, entrarComoInvitado, salir]
+    () => ({ listo, sesion, perfil, errorPerfil, reintentarPerfil, modoDemoLocal, entrar, registrarse, entrarComoInvitado, entrarConGoogle, salir }),
+    [listo, sesion, perfil, errorPerfil, reintentarPerfil, modoDemoLocal, entrar, registrarse, entrarComoInvitado, entrarConGoogle, salir]
   );
   return <AuthContext.Provider value={valor}>{children}</AuthContext.Provider>;
 }
