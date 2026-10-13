@@ -12,7 +12,7 @@ export function PrioridadHoy({ clientes }: {clientes: ClienteResumen[];}) {
   slice(0, 4);
 
   return (
-    <section className="flex flex-col rounded-2xl border border-line bg-surface" aria-labelledby="prioridad-titulo">
+    <section className="flex min-w-0 flex-col rounded-2xl border border-line bg-surface" aria-labelledby="prioridad-titulo">
       <header className="flex items-center justify-between gap-3 px-5 pb-3 pt-5">
         <div className="flex items-center gap-2.5">
           <AgentAvatar agente="analista" tamano="sm" />

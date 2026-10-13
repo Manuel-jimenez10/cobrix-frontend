@@ -48,6 +48,7 @@
 }
 html {
   background-color: rgb(var(--bg));
+  overflow-x: clip;
 }
 body {
   margin: 0;

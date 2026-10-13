@@ -43,7 +43,7 @@ function DashboardSkeleton() {
     <div className="space-y-6" aria-busy="true" aria-label="Cargando panel">
       <Skeleton className="h-36 w-full rounded-2xl" />
       <Skeleton className="h-24 w-full rounded-2xl" />
-      <div className="grid gap-6 xl:grid-cols-2">
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
         <Skeleton className="h-72 rounded-2xl" />
         <Skeleton className="h-72 rounded-2xl" />
       </div>
@@ -78,7 +78,7 @@ export function Inicio() {
   <div className="space-y-6">
         <KpiGrid dashboard={dashboard} />
         <AgentsRow eventos={eventos} tareasHoy={dashboard.tareasHoy} />
-        <div className="grid gap-6 xl:grid-cols-2">
+        <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
           <PrioridadHoy clientes={clientes} />
           <AgingChart tramos={dashboard.antiguedad} />
         </div>

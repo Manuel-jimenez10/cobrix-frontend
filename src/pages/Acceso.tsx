@@ -106,7 +106,7 @@ function Formulario() {
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
             transition={{ duration: 0.22, ease: EASE_OUT }}
-            className="grid gap-4 overflow-hidden sm:grid-cols-2">
+            className="grid grid-cols-1 gap-4 overflow-hidden sm:grid-cols-2">
 
               <Campo id="nombre" etiqueta="Tu nombre">
                 <input id="nombre" required autoComplete="given-name" value={nombre} onChange={(e) => setNombre(e.target.value)} placeholder="Manuel" className={claseInput} />

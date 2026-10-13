@@ -30,7 +30,7 @@ const CANALES: {valor: Canal;etiqueta: string;descripcion: string;icono: typeof 
 
 function Seccion({ titulo, descripcion, children }: {titulo: string;descripcion?: string;children: React.ReactNode;}) {
   return (
-    <section className="grid gap-4 border-b border-line py-7 last:border-b-0 lg:grid-cols-[240px_minmax(0,1fr)] lg:gap-10">
+    <section className="grid grid-cols-1 gap-4 border-b border-line py-7 last:border-b-0 lg:grid-cols-[240px_minmax(0,1fr)] lg:gap-10">
       <div>
         <h2 className="text-sm font-semibold">{titulo}</h2>
         {descripcion && <p className="mt-1 text-sm leading-relaxed text-muted">{descripcion}</p>}
@@ -152,7 +152,7 @@ export function Ajustes() {
         </Seccion>
     }
       <Seccion titulo="Canal activo" descripcion="Por dónde envían los agentes los mensajes de cobranza.">
-        <div role="radiogroup" aria-label="Canal activo" className="grid gap-2 sm:grid-cols-2">
+        <div role="radiogroup" aria-label="Canal activo" className="grid grid-cols-1 gap-2 sm:grid-cols-2">
           {CANALES.map((c) => {
           const activo = canal === c.valor;
           return (
@@ -260,7 +260,7 @@ export function Ajustes() {
             </button>
         )}
         </div>
-        <div className="grid gap-4 xl:grid-cols-2">
+        <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
           <div className="rounded-xl border border-line p-4">
             <div className="flex items-center gap-2">
               <p className="text-sm font-medium">{plantilla.nombre}</p>
