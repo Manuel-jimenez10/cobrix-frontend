@@ -13,6 +13,7 @@ import { Cartera } from './pages/Cartera';
 import { Guia } from './pages/Guia';
 import { Inicio } from './pages/Inicio';
 import { Legal } from './pages/Legal';
+import { Docs } from './pages/docs/Docs';
 import { Promesas } from './pages/Promesas';
 
 interface AppProps {
@@ -42,6 +43,7 @@ export function App({ tema = 'oscuro', datosDeEjemplo = true }: AppProps) {
             {/* Páginas públicas (sin sesión): las pide Google para el inicio de sesión con OAuth. */}
             <Route path="privacidad" element={<Legal tipo="privacidad" />} />
             <Route path="terminos" element={<Legal tipo="terminos" />} />
+            <Route path="docs" element={<Docs />} />
             <Route
               path="*"
               element={
