@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, useReducedMotion } from 'framer-motion';
 import {
+  ArrowLeftIcon,
   ArrowRightIcon,
   BanknoteIcon,
   BellRingIcon,
@@ -384,7 +385,15 @@ export function Docs() {
   return (
     <div className="min-h-[100dvh] bg-bg text-fg">
       <div className="sticky top-0 z-40 border-b border-line bg-bg/80 backdrop-blur-xl">
-        <div className="mx-auto flex h-14 max-w-6xl items-center gap-4 px-4 sm:px-6">
+        <div className="mx-auto flex h-14 max-w-6xl items-center gap-3 px-4 sm:gap-4 sm:px-6">
+          <Link
+            to="/"
+            aria-label="Volver al inicio"
+            className="group inline-flex h-9 shrink-0 items-center gap-1.5 rounded-lg border border-line px-2.5 text-sm text-muted transition-colors hover:border-muted/50 hover:text-fg sm:px-3">
+
+            <ArrowLeftIcon size={16} className="transition-transform group-hover:-translate-x-0.5" aria-hidden="true" />
+            <span className="hidden sm:inline">Volver</span>
+          </Link>
           <Link to="/docs" aria-label="Documentación de Cobrix" className="flex items-center gap-2">
             <Logo />
             <span className="hidden rounded-md bg-surface-2 px-2 py-0.5 text-xs text-muted sm:inline">Docs</span>

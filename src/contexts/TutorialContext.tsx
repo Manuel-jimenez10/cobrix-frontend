@@ -21,6 +21,8 @@ interface Estado {
 interface TutorialValor extends Estado {
   total: number;
   empezar: (clienteId: string | null) => void;
+  /** Fija el cliente de práctica (si al empezar aún no cargaba la cartera, o ya no existe). */
+  fijarCliente: (clienteId: string) => void;
   saltarBienvenida: () => void;
   avanzar: () => void;
   cerrar: () => void;
@@ -85,6 +87,7 @@ export function TutorialProvider({ children, usuarioId }: {children: ReactNode;u
     setPista(null);
     setEstado((e) => ({ ...e, bienvenidaVista: true, activo: true, paso: 0, clienteId }));
   }, []);
+  const fijarCliente = useCallback((clienteId: string) => setEstado((e) => e.clienteId === clienteId ? e : { ...e, clienteId }), []);
   const saltarBienvenida = useCallback(() => setEstado((e) => ({ ...e, bienvenidaVista: true, activo: false })), []);
   const cerrar = useCallback(() => setEstado((e) => ({ ...e, activo: false })), []);
   const reiniciar = useCallback(() => setEstado((e) => ({ ...e, bienvenidaVista: false, activo: false, paso: 0 })), []);
@@ -92,8 +95,8 @@ export function TutorialProvider({ children, usuarioId }: {children: ReactNode;u
   const cerrarPista = useCallback(() => setPista(null), []);
 
   const valor = useMemo<TutorialValor>(
-    () => ({ ...estado, total: PASOS_RECORRIDO.length, empezar, saltarBienvenida, avanzar, cerrar, reiniciar, pista, mostrarPista, cerrarPista }),
-    [estado, empezar, saltarBienvenida, avanzar, cerrar, reiniciar, pista, mostrarPista, cerrarPista]
+    () => ({ ...estado, total: PASOS_RECORRIDO.length, empezar, fijarCliente, saltarBienvenida, avanzar, cerrar, reiniciar, pista, mostrarPista, cerrarPista }),
+    [estado, empezar, fijarCliente, saltarBienvenida, avanzar, cerrar, reiniciar, pista, mostrarPista, cerrarPista]
   );
 
   return <TutorialContext.Provider value={valor}>{children}</TutorialContext.Provider>;

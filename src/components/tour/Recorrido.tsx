@@ -87,8 +87,17 @@ function PasoActual() {
   const { clientes } = useCobranza();
   const { setAbierto: setGuiaAbierta } = useGuia();
   const paso = t.activo ? PASOS_RECORRIDO[t.paso] : null;
-  const cliente = clientes.find((c) => c.id === t.clienteId);
-  const ctx: ContextoPaso = { clienteId: t.clienteId, empresa: cliente?.empresa ?? 'un cliente', escritorio };
+  const practica = useClienteDePractica();
+  // Si el recorrido empezó antes de cargar la cartera (o el cliente ya no existe), usa el de práctica.
+  const valido = clientes.some((c) => c.id === t.clienteId);
+  const clienteId = valido ? t.clienteId : practica?.id ?? null;
+  const cliente = clientes.find((c) => c.id === clienteId);
+  const ctx: ContextoPaso = { clienteId, empresa: cliente?.empresa ?? 'un cliente', escritorio };
+
+  useEffect(() => {
+    if (t.activo && !valido && practica) t.fijarCliente(practica.id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [t.activo, valido, practica?.id]);
 
   // Pasos que avanzan al llegar a una pantalla.
   useEffect(() => {
@@ -112,7 +121,7 @@ function PasoActual() {
       texto={paso.texto(ctx)}
       progreso={{ actual: t.paso + 1, total: t.total }}
       siguiente={paso.avance.tipo === 'siguiente' ? { etiqueta: paso.id === 'fin' ? 'Terminar' : 'Siguiente', onClick: t.avanzar } : undefined}
-      alternativa={{ etiqueta: enOtraPantalla || paso.avance.tipo === 'ruta' ? 'Llévame ahí' : 'Continuar', onClick: () => enOtraPantalla || paso.avance.tipo === 'ruta' ? navigate(ruta) : t.avanzar() }}
+      alternativa={{ etiqueta: enOtraPantalla || paso.avance.tipo === 'ruta' ? 'Llévame ahí' : 'Continuar', onClick: () => (enOtraPantalla || paso.avance.tipo === 'ruta') && ruta !== pathname ? navigate(ruta) : t.avanzar() }}
       onClicObjetivo={paso.avance.tipo === 'clic' ? t.avanzar : undefined}
       onSaltarPaso={paso.id === 'fin' ? undefined : t.avanzar}
       onCerrar={t.cerrar} />);
