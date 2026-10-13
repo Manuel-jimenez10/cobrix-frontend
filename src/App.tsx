@@ -13,6 +13,7 @@ import { Cartera } from './pages/Cartera';
 import { Guia } from './pages/Guia';
 import { Inicio } from './pages/Inicio';
 import { Legal } from './pages/Legal';
+import { Landing } from './pages/Landing';
 import { Docs } from './pages/docs/Docs';
 import { Promesas } from './pages/Promesas';
 
@@ -44,6 +45,7 @@ export function App({ tema = 'oscuro', datosDeEjemplo = true }: AppProps) {
             <Route path="privacidad" element={<Legal tipo="privacidad" />} />
             <Route path="terminos" element={<Legal tipo="terminos" />} />
             <Route path="docs" element={<Docs />} />
+            <Route path="bienvenida" element={<Landing />} />
             <Route
               path="*"
               element={
@@ -59,6 +61,7 @@ export function App({ tema = 'oscuro', datosDeEjemplo = true }: AppProps) {
                     <Route path="guia" element={<Guia />} />
                     <Route path="ajustes" element={<Ajustes />} />
                     <Route path="demo" element={<Navigate to="/" replace />} />
+                    <Route path="entrar" element={<Navigate to="/" replace />} />
                     <Route path="*" element={<Navigate to="/" replace />} />
                   </Route>
                 </Routes>

@@ -3,6 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { ArrowRightIcon, LifeBuoyIcon, ListOrderedIcon, LoaderCircleIcon, MessageCircleIcon, SendIcon, SparklesIcon } from 'lucide-react';
 import { Logo } from '../components/layout/Logo';
+import { Landing } from './Landing';
 import { Button } from '../components/ui/Button';
 import { EmptyState } from '../components/ui/EmptyState';
 import { useAuth } from '../contexts/AuthContext';
@@ -224,9 +225,9 @@ function Escaparate() {
   return (
     <div className="relative hidden overflow-hidden border-r border-line bg-surface lg:flex lg:flex-col lg:justify-between lg:p-12">
       <div aria-hidden="true" className="pointer-events-none absolute inset-0 opacity-60 [background-image:radial-gradient(rgb(var(--line))_1px,transparent_1px)] [background-size:22px_22px]" />
-      <div className="relative">
+      <Link to="/" className="relative self-start" aria-label="Volver al inicio">
         <Logo />
-      </div>
+      </Link>
       <div className="relative max-w-md">
         <p className="text-[34px] font-semibold leading-[1.1] tracking-tight">
           Los recordatorios, en automático.
@@ -281,9 +282,9 @@ export function Acceso() {
     <div className="grid min-h-[100dvh] bg-bg lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
       <Escaparate />
       <main className="flex flex-col px-5 pb-[calc(32px+env(safe-area-inset-bottom))] pt-[calc(28px+env(safe-area-inset-top))] lg:items-center lg:justify-center lg:p-12">
-        <div className="mb-10 lg:hidden">
+        <Link to="/" className="mb-10 self-start lg:hidden" aria-label="Volver al inicio">
           <Logo />
-        </div>
+        </Link>
         <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, ease: EASE_OUT }} className="flex w-full justify-center">
           <Formulario />
         </motion.div>
@@ -310,7 +311,8 @@ export function AuthGate({ children }: {children: ReactNode;}) {
   if (modoDemoLocal) return <>{children}</>;
   if (!listo) return <Cargando />;
   if (!sesion && esLinkDemo && !errorDemo) return <Cargando />;
-  if (!sesion) return <Acceso />;
+  // Sin sesión: /entrar muestra el login; cualquier otra ruta, la landing.
+  if (!sesion) return pathname === '/entrar' ? <Acceso /> : <Landing />;
   if (errorPerfil) {
     return (
       <EmptyState
