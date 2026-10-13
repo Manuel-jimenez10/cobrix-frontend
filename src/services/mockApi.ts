@@ -23,7 +23,6 @@ import type {
   ResultadoCobranza,
   Tono } from
 '../types/cobranza';
-import type { EventoDirector, MensajeDirector } from '../types/director';
 import type { EventoGuia, MensajeGuia } from '../types/guia';
 import { llenarPlantilla, siguienteTono } from '../utils/cobranza';
 import { formatFecha, formatMXN, normalizar, primerNombre } from '../utils/format';
@@ -39,7 +38,7 @@ import {
   store,
   suscriptores } from
 './mockDb';
-import { planDirector, responderGuia } from './simuladores';
+import { responderGuia } from './simuladores';
 
 const BASE_RECUPERADO = 126_400;
 const BASE_TAREAS: Record<AgenteId, number> = { director: 6, analista: 18, redactor: 23, negociador: 11 };
@@ -183,11 +182,11 @@ export async function iniciarCobranza(clienteIds: string[], opciones: OpcionesCo
   onProgreso?.({ fase, orden, actualId, enviados: [...enviados] });
 
   reportar('analizando', null);
-  const evA = emitir(db, { agente: 'analista', clienteId: null, accion: 'Priorizando cola de cobranza', detalle: `${candidatos.length} clientes en evaluación`, estado: 'en_progreso' });
+  const evA = emitir(db, { agente: 'analista', clienteId: null, accion: 'Ordenando clientes por prioridad', detalle: `${candidatos.length} clientes en evaluación`, estado: 'en_progreso' });
   await espera(500, 700);
   actualizarEvento(db, evA.id, {
     estado: 'completado',
-    accion: 'Priorizó la cola',
+    accion: 'Clientes ordenados por prioridad',
     detalle: candidatos[0] ? `${candidatos[0].empresa} va primero · score ${candidatos[0].prioridad.score}` : 'Nadie necesita recordatorio ahora'
   });
 
@@ -196,7 +195,7 @@ export async function iniciarCobranza(clienteIds: string[], opciones: OpcionesCo
     const c = candidatos.find((x) => x.id === item.clienteId);
     if (!c) continue;
     reportar('enviando', c.id);
-    const evR = emitir(db, { agente: 'redactor', clienteId: c.id, accion: 'Enviando recordatorio', detalle: `Plantilla ${item.tono} · ${c.empresa}`, estado: 'en_progreso' });
+    const evR = emitir(db, { agente: 'redactor', clienteId: c.id, accion: `Enviando recordatorio a ${c.empresa}`, detalle: `Plantilla ${item.tono}`, estado: 'en_progreso' });
     await espera(280, 420);
     const plantilla = plantillas.find((p) => p.tono === item.tono) ?? plantillas[0];
     const contenido = llenarPlantilla(plantilla.contenido, {
@@ -213,8 +212,8 @@ export async function iniciarCobranza(clienteIds: string[], opciones: OpcionesCo
     const canal: Canal = db.canal === 'simulador' ? 'simulador' : c.canal;
     actualizarEvento(db, evR.id, {
       estado: 'completado',
-      accion: canal === 'whatsapp' ? 'Recordatorio enviado por WhatsApp' : 'Recordatorio enviado al simulador',
-      detalle: `Plantilla ${item.tono} · ${c.empresa}`
+      accion: `Recordatorio enviado a ${c.empresa}`,
+      detalle: `Plantilla ${item.tono} · ${canal === 'whatsapp' ? 'WhatsApp' : 'simulador'}`
     });
   }
   reportar('listo', null);
@@ -229,7 +228,7 @@ export async function responderComoCliente(clienteId: string, mensaje: string): 
   await espera(150, 250);
   const msg: Mensaje = { id: crearId('msg'), clienteId, rol: 'cliente', agente: null, contenido: mensaje, tono: null, esPlantilla: false, fecha: new Date().toISOString() };
   db.mensajes.push(msg);
-  emitir(db, { agente: 'analista', clienteId, accion: 'Detectó una respuesta · requiere tu atención', detalle: `${cliente.empresa}: “${mensaje.slice(0, 57)}”`, estado: 'completado' });
+  emitir(db, { agente: 'analista', clienteId, accion: `${cliente.empresa} te escribió`, detalle: `“${mensaje.slice(0, 57)}” · espera tu respuesta`, estado: 'completado' });
   return clonar(msg);
 }
 
@@ -241,7 +240,7 @@ export async function responderComoEquipo(clienteId: string, texto: string): Pro
   await espera(200, 350);
   const msg: Mensaje = { id: crearId('msg'), clienteId, rol: 'agente', agente: null, contenido: texto, tono: null, esPlantilla: false, fecha: new Date().toISOString() };
   db.mensajes.push(msg);
-  emitir(db, { agente: 'negociador', clienteId, accion: 'Respondió al cliente', detalle: cliente.empresa, estado: 'completado' });
+  emitir(db, { agente: 'negociador', clienteId, accion: `Respondiste a ${cliente.empresa}`, detalle: texto.slice(0, 60), estado: 'completado' });
   return clonar(msg);
 }
 
@@ -265,7 +264,7 @@ export async function registrarPromesa(clienteId: string, datos: {monto: number;
   abiertas.forEach((f) => {
     f.estado = 'promesa';
   });
-  emitir(db, { agente: 'negociador', clienteId, accion: 'Registró una promesa de pago', detalle: `${formatMXN(promesa.monto)} · ${cliente.empresa} · ${formatFecha(promesa.fechaCompromiso)}`, estado: 'completado' });
+  emitir(db, { agente: 'negociador', clienteId, accion: `Promesa de pago de ${cliente.empresa}`, detalle: `${formatMXN(promesa.monto)} para el ${formatFecha(promesa.fechaCompromiso)}`, estado: 'completado' });
   return clonar(promesa);
 }
 
@@ -279,65 +278,11 @@ export async function* chatGuia(mensajes: MensajeGuia[], _pantalla: string): Asy
   yield { tipo: 'fin' };
 }
 
-// POST /director/chat (respuesta en streaming)
-export async function* chatDirector(mensajes: MensajeDirector[]): AsyncGenerator<EventoDirector> {
-  const ultimo = [...mensajes].reverse().find((m) => m.rol === 'usuario');
-  const pregunta = ultimo?.bloques.map((b) => b.tipo === 'texto' ? b.texto : '').join(' ') ?? '';
-  await espera(350, 550);
-  const pasos = planDirector(store.db, pregunta);
-  for (const paso of pasos) {
-    if (paso.tipo === 'delegando') {
-      yield paso;
-      await espera(900, 1300);
-    } else if (paso.tipo === 'texto') {
-      let primero = true;
-      for await (const delta of escribir(paso.texto)) {
-        yield { tipo: 'delta', texto: delta, nuevo: primero };
-        primero = false;
-      }
-    } else {
-      await espera(200, 350);
-      yield { tipo: 'bloque', bloque: paso.bloque };
-    }
-  }
-  yield { tipo: 'fin' };
-}
-
-// Supabase Realtime (simulado): emite eventos de agentes cada pocos segundos
-let temporizador: ReturnType<typeof setTimeout> | null = null;
-
-const PLANTILLAS_EVENTO: {agente: AgenteId;enCurso: string;hecho: string;detalle: (c: ClienteResumen, total: number) => string;}[] = [
-{ agente: 'analista', enCurso: 'Recalculando prioridad', hecho: 'Actualizó prioridad', detalle: (c) => `${c.empresa} · score ${c.prioridad.score}` },
-{ agente: 'redactor', enCurso: 'Revisando plantillas', hecho: 'Plantillas al día', detalle: (c) => `Siguiente recordatorio para ${c.empresa}` },
-{ agente: 'director', enCurso: 'Supervisando la cola', hecho: 'Revisó la cola de cobranza', detalle: (_, total) => `${total} clientes con saldo pendiente` }];
-
-
-function simularEvento() {
-  const db = store.db;
-  const candidatos = db.clientes.map((c) => resumir(db, c)).filter((c) => c.deuda > 0 && !c.escalado && !c.requiereAtencion);
-  if (!candidatos.length) return;
-  const c = candidatos[Math.floor(Math.random() * candidatos.length)];
-  const t = PLANTILLAS_EVENTO[Math.floor(Math.random() * PLANTILLAS_EVENTO.length)];
-  const ev = emitir(db, { agente: t.agente, clienteId: t.agente === 'director' ? null : c.id, accion: t.enCurso, detalle: t.detalle(c, candidatos.length), estado: 'en_progreso' });
-  setTimeout(() => actualizarEvento(db, ev.id, { estado: 'completado', accion: t.hecho }), 2200 + Math.random() * 1500);
-}
-
-function programar() {
-  temporizador = setTimeout(() => {
-    simularEvento();
-    programar();
-  }, 6000 + Math.random() * 5000);
-}
-
+// Supabase Realtime (simulado): las acciones de la sesión notifican a los suscriptores.
 export function suscribirEventos(callback: (evento: EventoAgente) => void): () => void {
   suscriptores.add(callback);
-  if (!temporizador) programar();
   return () => {
     suscriptores.delete(callback);
-    if (suscriptores.size === 0 && temporizador) {
-      clearTimeout(temporizador);
-      temporizador = null;
-    }
   };
 }
 
@@ -356,7 +301,7 @@ export async function marcarPagada(clienteId: string): Promise<number> {
     p.estado = 'cumplida';
   });
   db.recuperadoSesion += monto;
-  emitir(db, { agente: 'director', clienteId, accion: 'Registró pago', detalle: `${cliente?.empresa ?? 'Cliente'} · ${formatMXN(monto)}`, estado: 'completado' });
+  emitir(db, { agente: 'director', clienteId, accion: `Pago registrado de ${cliente?.empresa ?? 'cliente'}`, detalle: `${formatMXN(monto)} · facturas liquidadas`, estado: 'completado' });
   return monto;
 }
 
@@ -379,7 +324,7 @@ export async function cumplirPromesa(promesaId: string): Promise<void> {
   }
   db.recuperadoSesion += promesa.monto;
   const cliente = db.clientes.find((c) => c.id === promesa.clienteId);
-  emitir(db, { agente: 'negociador', clienteId: promesa.clienteId, accion: 'Confirmó una promesa cumplida', detalle: `${cliente?.empresa ?? ''} · ${formatMXN(promesa.monto)}`, estado: 'completado' });
+  emitir(db, { agente: 'negociador', clienteId: promesa.clienteId, accion: `Promesa cumplida de ${cliente?.empresa ?? 'cliente'}`, detalle: `${formatMXN(promesa.monto)} recibidos`, estado: 'completado' });
 }
 
 // GET /ajustes

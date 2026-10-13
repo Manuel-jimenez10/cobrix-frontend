@@ -1,8 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { ChevronRightIcon } from 'lucide-react';
+import { ChevronRightIcon, ListOrderedIcon } from 'lucide-react';
 import type { ClienteResumen } from '../../types/cobranza';
-import { AgentAvatar } from '../ui/AgentAvatar';
 import { Money } from '../ui/Money';
 
 export function PrioridadHoy({ clientes }: {clientes: ClienteResumen[];}) {
@@ -12,15 +11,17 @@ export function PrioridadHoy({ clientes }: {clientes: ClienteResumen[];}) {
   slice(0, 4);
 
   return (
-    <section className="flex min-w-0 flex-col rounded-2xl border border-line bg-surface" aria-labelledby="prioridad-titulo">
+    <section data-tour="prioridad-hoy" className="flex min-w-0 flex-col rounded-2xl border border-line bg-surface" aria-labelledby="prioridad-titulo">
       <header className="flex items-center justify-between gap-3 px-5 pb-3 pt-5">
         <div className="flex items-center gap-2.5">
-          <AgentAvatar agente="analista" tamano="sm" />
+          <span className="grid h-8 w-8 place-items-center rounded-full bg-surface-2 text-muted" aria-hidden="true">
+            <ListOrderedIcon size={15} />
+          </span>
           <div>
             <h2 id="prioridad-titulo" className="text-sm font-medium">
               A quién cobrar hoy
             </h2>
-            <p className="text-xs text-muted">Orden sugerido por el Analista</p>
+            <p className="text-xs text-muted">Ordenados por prioridad: atraso, monto y respuestas</p>
           </div>
         </div>
         <Link to="/cartera" className="rounded-md px-2 py-1 text-xs text-muted transition-colors duration-150 hover:text-fg">

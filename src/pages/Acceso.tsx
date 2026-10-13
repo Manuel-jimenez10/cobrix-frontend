@@ -1,18 +1,19 @@
 import { type FormEvent, type ReactNode, useEffect, useRef, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
-import { ArrowRightIcon, LoaderCircleIcon, SparklesIcon } from 'lucide-react';
+import { ArrowRightIcon, LifeBuoyIcon, ListOrderedIcon, LoaderCircleIcon, MessageCircleIcon, SendIcon, SparklesIcon } from 'lucide-react';
 import { Logo } from '../components/layout/Logo';
-import { AgentAvatar } from '../components/ui/AgentAvatar';
 import { Button } from '../components/ui/Button';
 import { EmptyState } from '../components/ui/EmptyState';
 import { useAuth } from '../contexts/AuthContext';
-import { AGENTES } from '../data/agentes';
-import type { AgenteId } from '../types/cobranza';
 import { cn } from '../utils/cn';
 import { EASE_OUT } from '../utils/motion';
 
-const EQUIPO: AgenteId[] = ['analista', 'redactor', 'negociador', 'director'];
+const FUNCIONES = [
+{ icono: ListOrderedIcon, titulo: 'Prioriza tu cartera', texto: 'Sabes a quién cobrar primero y por qué' },
+{ icono: SendIcon, titulo: 'Recordatorios por WhatsApp', texto: 'Plantillas aprobadas: amable, firme y aviso final' },
+{ icono: MessageCircleIcon, titulo: 'Tú cierras el acuerdo', texto: 'Te avisa cuando un cliente responde' },
+{ icono: LifeBuoyIcon, titulo: 'Guía con IA', texto: 'Te enseña a usar la app y señala dónde presionar' }];
 
 function Campo({ id, etiqueta, children }: {id: string;etiqueta: string;children: ReactNode;}) {
   return (
@@ -73,7 +74,7 @@ function Formulario() {
     <div className="w-full max-w-[400px]">
       <h1 className="text-[28px] font-semibold tracking-tight">{modo === 'entrar' ? 'Bienvenido de vuelta' : 'Crea tu cuenta'}</h1>
       <p className="mt-1.5 text-sm text-muted">
-        {modo === 'entrar' ? 'Entra para ver a tus agentes trabajar.' : 'Te preparamos una cartera de ejemplo para que pruebes todo.'}
+        {modo === 'entrar' ? 'Entra para gestionar tus cobros.' : 'Te preparamos una cartera de ejemplo para que pruebes todo.'}
       </p>
 
       <motion.button
@@ -192,21 +193,23 @@ function Escaparate() {
           <span className="text-brand">La relación, en tus manos.</span>
         </p>
         <p className="mt-4 text-[15px] leading-relaxed text-muted">
-          Cobrix decide a quién cobrar primero y envía los recordatorios por WhatsApp. Cuando un cliente responde, te avisa para que tú cierres el acuerdo. Un Director y una Guía con IA te ayudan en todo momento.
+          Cobrix ordena a quién cobrar primero y envía los recordatorios por WhatsApp. Cuando un cliente responde, te avisa para que tú cierres el acuerdo.
         </p>
         <ul className="mt-9 space-y-3">
-          {EQUIPO.map((id, i) =>
+          {FUNCIONES.map((f, i) =>
           <motion.li
-            key={id}
+            key={f.titulo}
             initial={{ opacity: 0, x: -10 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: 0.15 + i * 0.08, duration: 0.4, ease: EASE_OUT }}
             className="flex items-center gap-3 rounded-xl border border-line bg-bg/50 px-4 py-3">
 
-              <AgentAvatar agente={id} activo={i === 0} />
+              <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-brand/15 text-brand" aria-hidden="true">
+                <f.icono size={15} />
+              </span>
               <span className="min-w-0">
-                <span className="block text-sm font-medium">{AGENTES[id].nombre}</span>
-                <span className="block text-xs text-muted">{AGENTES[id].rol}</span>
+                <span className="block text-sm font-medium">{f.titulo}</span>
+                <span className="block text-xs text-muted">{f.texto}</span>
               </span>
             </motion.li>
           )}
@@ -271,7 +274,7 @@ export function AuthGate({ children }: {children: ReactNode;}) {
     return (
       <EmptyState
         ilustracion="error"
-        titulo="No pudimos conectar con tus agentes"
+        titulo="No pudimos conectar con el servidor"
         descripcion={`${errorPerfil} Si el servidor estaba dormido (plan gratuito de Render), tarda unos 30 segundos en despertar.`}
         accion={
         <div className="flex flex-wrap justify-center gap-2">

@@ -1,8 +1,9 @@
 import React, { useEffect, useId, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
-import { CalendarCheckIcon, CornerDownLeftIcon, HouseIcon, MoonIcon, SearchIcon, SettingsIcon, SparklesIcon, UserRoundIcon, UsersIcon, BoxIcon } from "lucide-react";
+import { CalendarCheckIcon, CornerDownLeftIcon, HouseIcon, LifeBuoyIcon, MoonIcon, SearchIcon, SendIcon, SettingsIcon, UserRoundIcon, UsersIcon, BoxIcon } from "lucide-react";
 import { useCobranza } from "../contexts/CobranzaContext";
+import { useGuia } from "../contexts/GuiaContext";
 import { useUI } from "../contexts/UIContext";
 import { useEsEscritorio } from "../hooks/useMediaQuery";
 import { cn } from "../utils/cn";
@@ -23,13 +24,13 @@ export function CommandPalette() {
     paletaAbierta,
     setPaletaAbierta,
     abrirCobranza,
-    setDirectorAbierto,
     alternarTema,
     tema
   } = useUI();
   const {
     clientes
   } = useCobranza();
+  const guia = useGuia();
   const navigate = useNavigate();
   const escritorio = useEsEscritorio();
   const [q, setQ] = useState('');
@@ -51,15 +52,15 @@ export function CommandPalette() {
       id: 'a-cobranza',
       grupo: 'Acciones',
       etiqueta: 'Iniciar cobranza (enviar recordatorios)',
-      icono: SparklesIcon,
+      icono: SendIcon,
       ejecutar: () => abrirCobranza()
     }, {
-      id: 'a-director',
+      id: 'a-guia',
       grupo: 'Acciones',
-      etiqueta: 'Preguntar al Director',
-      icono: SparklesIcon,
+      etiqueta: 'Preguntar a la Guía',
+      icono: LifeBuoyIcon,
       atajo: `${mod}J`,
-      ejecutar: () => escritorio ? setDirectorAbierto(true) : navigate('/director')
+      ejecutar: () => escritorio ? guia.setAbierto(true) : navigate('/guia')
     }, {
       id: 'a-inicio',
       grupo: 'Acciones',
@@ -103,7 +104,7 @@ export function CommandPalette() {
     if (!busqueda) return [...acciones.slice(0, 4), ...deClientes.slice(0, 5)];
     const coincide = (i: Item) => normalizar(`${i.etiqueta} ${i.detalle ?? ''}`).includes(busqueda);
     return [...deClientes.filter(coincide).slice(0, 8), ...acciones.filter(coincide)];
-  }, [q, clientes, navigate, abrirCobranza, setDirectorAbierto, escritorio, alternarTema, tema, mod]);
+  }, [q, clientes, navigate, abrirCobranza, guia, escritorio, alternarTema, tema, mod]);
   useEffect(() => setIndice(0), [q]);
   const ejecutar = (item: Item) => {
     cerrar();

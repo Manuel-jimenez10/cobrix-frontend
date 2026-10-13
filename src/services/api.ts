@@ -23,7 +23,6 @@ export const responderComoCliente = impl.responderComoCliente;
 export const responderComoEquipo = impl.responderComoEquipo;
 export const registrarPromesa = impl.registrarPromesa;
 export const chatGuia = impl.chatGuia;
-export const chatDirector = impl.chatDirector;
 export const suscribirEventos = impl.suscribirEventos;
 export const marcarPagada = impl.marcarPagada;
 export const cumplirPromesa = impl.cumplirPromesa;

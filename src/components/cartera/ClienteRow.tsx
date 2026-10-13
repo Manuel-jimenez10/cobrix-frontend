@@ -20,6 +20,7 @@ export function ClienteRow({ cliente: c, activo, onSeleccionar }: ClienteRowProp
     <motion.li layout="position" transition={{ duration: 0.22, ease: EASE_OUT }}>
       <button
         type="button"
+        data-tour={`cliente-${c.id}`}
         onClick={onSeleccionar}
         aria-current={activo ? 'true' : undefined}
         className={cn('relative block w-full px-4 py-3.5 text-left transition-colors duration-150', activo ? 'bg-surface-2' : 'hover:bg-surface-2/50')}>

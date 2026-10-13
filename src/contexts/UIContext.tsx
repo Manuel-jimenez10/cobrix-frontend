@@ -23,8 +23,6 @@ interface UIValor {
   alternarTema: () => void;
   sidebarColapsado: boolean;
   alternarSidebar: () => void;
-  directorAbierto: boolean;
-  setDirectorAbierto: Dispatch<SetStateAction<boolean>>;
   paletaAbierta: boolean;
   setPaletaAbierta: Dispatch<SetStateAction<boolean>>;
   cobranza: EstadoCobranzaUI;
@@ -39,7 +37,6 @@ const UIContext = createContext<UIValor | null>(null);
 export function UIProvider({ children, temaInicial }: {children: ReactNode;temaInicial: Tema;}) {
   const [tema, setTema] = useState<Tema>(temaInicial);
   const [sidebarColapsado, setSidebarColapsado] = useState(false);
-  const [directorAbierto, setDirectorAbierto] = useState(false);
   const [paletaAbierta, setPaletaAbierta] = useState(false);
   const [cobranza, setCobranza] = useState<EstadoCobranzaUI>({ abierta: false, clienteIds: null });
   const [filtrosCartera, setFiltrosCartera] = useState<FiltrosClientes>({
@@ -69,8 +66,6 @@ export function UIProvider({ children, temaInicial }: {children: ReactNode;temaI
       alternarTema,
       sidebarColapsado,
       alternarSidebar,
-      directorAbierto,
-      setDirectorAbierto,
       paletaAbierta,
       setPaletaAbierta,
       cobranza,
@@ -79,7 +74,7 @@ export function UIProvider({ children, temaInicial }: {children: ReactNode;temaI
       filtrosCartera,
       setFiltrosCartera
     }),
-    [tema, alternarTema, sidebarColapsado, alternarSidebar, directorAbierto, paletaAbierta, cobranza, abrirCobranza, cerrarCobranza, filtrosCartera]
+    [tema, alternarTema, sidebarColapsado, alternarSidebar, paletaAbierta, cobranza, abrirCobranza, cerrarCobranza, filtrosCartera]
   );
 
   return <UIContext.Provider value={valor}>{children}</UIContext.Provider>;

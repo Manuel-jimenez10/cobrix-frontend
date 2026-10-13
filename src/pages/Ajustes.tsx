@@ -30,7 +30,7 @@ const CANALES: {valor: Canal;etiqueta: string;descripcion: string;icono: typeof 
 
 function Seccion({ titulo, descripcion, children, id }: {titulo: string;descripcion?: string;children: React.ReactNode;id?: string;}) {
   return (
-    <section id={id} className="scroll-mt-20 grid grid-cols-1 gap-4 border-b border-line py-7 last:border-b-0 lg:grid-cols-[240px_minmax(0,1fr)] lg:gap-10">
+    <section id={id} data-tour={id} className="scroll-mt-20 grid grid-cols-1 gap-4 border-b border-line py-7 last:border-b-0 lg:grid-cols-[240px_minmax(0,1fr)] lg:gap-10">
       <div>
         <h2 className="text-sm font-semibold">{titulo}</h2>
         {descripcion && <p className="mt-1 text-sm leading-relaxed text-muted">{descripcion}</p>}
@@ -150,7 +150,7 @@ export function Ajustes() {
               <p className="truncate text-xs text-muted">{perfil.empresa}</p>
               <p className="mt-1.5 flex items-center gap-1.5 text-xs text-muted">
                 <BotIcon size={13} aria-hidden="true" />
-                {perfil.iaActiva ? `Director y Guía con IA · ${perfil.modelo}` : 'Director y Guía en modo reglas (sin API key de IA)'}
+                {perfil.iaActiva ? `Guía con IA · ${perfil.modelo}` : 'Guía en modo preguntas frecuentes (sin API key de IA)'}
               </p>
             </div>
             <Button variante="secundario" icono={LogOutIcon} onClick={() => void salir()}>
@@ -252,7 +252,7 @@ export function Ajustes() {
       }
       </Seccion>
 
-      <Seccion titulo="Plantillas de mensaje" descripcion="El Redactor usa una por intento: amable, luego firme y al final el aviso final. Son plantillas aprobadas por Meta, así que se pueden enviar en cualquier momento.">
+      <Seccion titulo="Plantillas de mensaje" descripcion="Se usa una por intento: amable, luego firme y al final el aviso final. Son plantillas aprobadas por Meta, así que se pueden enviar en cualquier momento.">
         <div role="tablist" aria-label="Plantillas" className="mb-4 inline-flex rounded-lg border border-line p-1">
           {plantillas.map((p) =>
         <button

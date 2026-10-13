@@ -9,7 +9,7 @@ interface AuthValor {
   listo: boolean;
   sesion: Session | null;
   perfil: Perfil | null;
-  /** No se pudo contactar al backend de agentes. */
+  /** No se pudo contactar al backend. */
   errorPerfil: string | null;
   reintentarPerfil: () => void;
   modoDemoLocal: boolean;
@@ -66,7 +66,7 @@ export function AuthProvider({ children }: {children: ReactNode;}) {
     catch((e: Error) => {
       if (!activo) return;
       setPerfil(null);
-      setErrorPerfil(e.message === 'Failed to fetch' ? 'No pudimos conectar con el servidor de agentes.' : e.message);
+      setErrorPerfil(e.message === 'Failed to fetch' ? 'No pudimos conectar con el servidor de Cobrix.' : e.message);
     });
     return () => {
       activo = false;

@@ -1,7 +1,7 @@
 import React, { useId, useState } from 'react';
 import { motion } from 'framer-motion';
 import { SendHorizontalIcon } from 'lucide-react';
-import { sugerenciasCliente, sugerenciasEquipo } from '../../data/agentes';
+import { sugerenciasCliente, sugerenciasEquipo } from '../../data/sugerencias';
 import type { Autor } from '../../hooks/useConversacion';
 import { cn } from '../../utils/cn';
 import { EASE_OUT } from '../../utils/motion';
@@ -33,6 +33,7 @@ export function Composer({ autor, onCambiarAutor, onEnviar, ocupado, ventanaAbie
         e.preventDefault();
         void enviar(texto);
       }}
+      data-tour="responder"
       className="border-t border-line bg-surface/70 px-3 pb-[calc(12px+env(safe-area-inset-bottom))] pt-2.5 lg:px-5 lg:pb-4">
 
       <div className="mb-2.5 flex items-center gap-2">

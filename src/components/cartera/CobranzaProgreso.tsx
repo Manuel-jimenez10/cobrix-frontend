@@ -1,10 +1,9 @@
 import React from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { CheckIcon, CircleIcon, LoaderCircleIcon, SendIcon } from 'lucide-react';
+import { CheckIcon, CircleIcon, FileTextIcon, ListOrderedIcon, LoaderCircleIcon, SendIcon } from 'lucide-react';
 import type { Canal, ProgresoCobranza } from '../../types/cobranza';
 import { cn } from '../../utils/cn';
 import { EASE_OUT } from '../../utils/motion';
-import { AgentAvatar } from '../ui/AgentAvatar';
 import { ToneBadge } from '../ui/ToneBadge';
 
 type EstadoPaso = 'pendiente' | 'activo' | 'hecho';
@@ -13,6 +12,14 @@ function IconoEstado({ estado }: {estado: EstadoPaso;}) {
   if (estado === 'hecho') return <CheckIcon size={16} className="text-ok" aria-label="Completado" />;
   if (estado === 'activo') return <LoaderCircleIcon size={16} className="text-muted motion-safe:animate-spin" aria-label="En curso" />;
   return <CircleIcon size={14} className="text-line" aria-label="Pendiente" />;
+}
+
+function Paso({ icono: Icono, estado }: {icono: typeof SendIcon;estado: EstadoPaso;}) {
+  return (
+    <span className={cn('grid h-8 w-8 place-items-center rounded-full ring-1', estado === 'pendiente' ? 'bg-surface-2 text-muted ring-line' : 'bg-brand/15 text-brand ring-brand/40')} aria-hidden="true">
+      <Icono size={14} />
+    </span>);
+
 }
 
 export function CobranzaProgreso({ progreso, canal }: {progreso: ProgresoCobranza | null;canal: Canal;}) {
@@ -28,24 +35,21 @@ export function CobranzaProgreso({ progreso, canal }: {progreso: ProgresoCobranz
   const pasos = [
   {
     clave: 'analista',
-    avatar: <AgentAvatar agente="analista" activo={pasoAnalista === 'activo'} />,
-    titulo: 'Analista prioriza',
-    detalle: pasoAnalista === 'activo' ? 'Evaluando saldos, atrasos e historial…' : `Ordenó ${total} clientes por prioridad`,
+    avatar: <Paso icono={ListOrderedIcon} estado={pasoAnalista} />,
+    titulo: 'Ordenar por prioridad',
+    detalle: pasoAnalista === 'activo' ? 'Evaluando saldos, atrasos e historial…' : `${total} clientes en la cola`,
     estado: pasoAnalista
   },
   {
     clave: 'redactor',
-    avatar: <AgentAvatar agente="redactor" activo={pasoRedactor === 'activo'} />,
-    titulo: 'Redactor envía',
-    detalle: pasoRedactor === 'pendiente' ? 'Esperando la cola del Analista' : pasoRedactor === 'hecho' ? 'Plantilla con el tono de cada intento' : actual ? `Plantilla para ${actual.empresa}…` : 'Preparando la siguiente plantilla…',
+    avatar: <Paso icono={FileTextIcon} estado={pasoRedactor} />,
+    titulo: 'Preparar plantillas',
+    detalle: pasoRedactor === 'pendiente' ? 'Esperando la cola' : pasoRedactor === 'hecho' ? 'Plantilla con el tono de cada intento' : actual ? `Plantilla para ${actual.empresa}…` : 'Preparando la siguiente plantilla…',
     estado: pasoRedactor
   },
   {
     clave: 'envio',
-    avatar:
-    <span className={cn('grid h-8 w-8 place-items-center rounded-full ring-1', pasoEnvio === 'pendiente' ? 'bg-surface-2 text-muted ring-line' : 'bg-brand/15 text-brand ring-brand/40')} aria-hidden="true">
-          <SendIcon size={14} />
-        </span>,
+    avatar: <Paso icono={SendIcon} estado={pasoEnvio} />,
 
     titulo: canal === 'whatsapp' ? 'Envío por WhatsApp' : 'Envío al simulador',
     detalle: `${enviados} de ${total || '—'} mensajes enviados`,
@@ -104,7 +108,7 @@ export function CobranzaProgreso({ progreso, canal }: {progreso: ProgresoCobranz
                         <CheckIcon size={16} className="text-ok" aria-label="Enviado" />
                       </motion.span> :
                   esActual ?
-                  <LoaderCircleIcon size={16} className="text-redactor motion-safe:animate-spin" aria-label="Redactando" /> :
+                  <LoaderCircleIcon size={16} className="text-brand motion-safe:animate-spin" aria-label="Enviando" /> :
 
                   <CircleIcon size={10} className="ml-0.5 text-line" aria-label="En cola" />
                   }

@@ -1,14 +1,17 @@
-/** Pasos del recorrido guiado. Cualquier parte de la app puede avisar que se completó uno. */
-export type PasoTutorial = 'cartera' | 'cobranza' | 'atender' | 'director' | 'guia';
+/**
+ * Eventos del recorrido guiado: cualquier parte de la app avisa cuando el usuario
+ * completó una acción, y el recorrido avanza solo.
+ */
+export type EventoTutorial = 'cartera' | 'atender' | 'promesa' | 'cumplir' | 'pagada' | 'cobranza' | 'guia';
 
 const EVENTO = 'cobrix:tutorial';
 
-export function avisarTutorial(paso: PasoTutorial) {
-  window.dispatchEvent(new CustomEvent<PasoTutorial>(EVENTO, { detail: paso }));
+export function avisarTutorial(evento: EventoTutorial) {
+  window.dispatchEvent(new CustomEvent<EventoTutorial>(EVENTO, { detail: evento }));
 }
 
-export function escucharTutorial(fn: (paso: PasoTutorial) => void): () => void {
-  const manejador = (e: Event) => fn((e as CustomEvent<PasoTutorial>).detail);
+export function escucharTutorial(fn: (evento: EventoTutorial) => void): () => void {
+  const manejador = (e: Event) => fn((e as CustomEvent<EventoTutorial>).detail);
   window.addEventListener(EVENTO, manejador);
   return () => window.removeEventListener(EVENTO, manejador);
 }

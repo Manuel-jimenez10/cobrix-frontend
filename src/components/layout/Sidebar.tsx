@@ -19,7 +19,6 @@ import { useUI } from '../../contexts/UIContext';
 import { cn } from '../../utils/cn';
 import { grupoDePromesa } from '../../utils/cobranza';
 import { EASE_OUT, teclaMod } from '../../utils/motion';
-import { AgentAvatar } from '../ui/AgentAvatar';
 import { Kbd } from '../ui/Kbd';
 import { Logo } from './Logo';
 
@@ -31,7 +30,7 @@ const NAV = [
 
 
 export function Sidebar() {
-  const { sidebarColapsado: col, alternarSidebar, setPaletaAbierta, directorAbierto, setDirectorAbierto, tema, alternarTema } = useUI();
+  const { sidebarColapsado: col, alternarSidebar, setPaletaAbierta, tema, alternarTema } = useUI();
   const { promesas, clientes } = useCobranza();
   const guia = useGuia();
   const porAtender = clientes.filter((c) => c.requiereAtencion).length;
@@ -75,6 +74,7 @@ export function Sidebar() {
               <NavLink
               to={item.to}
               end={item.end}
+              data-tour={`nav${item.to === '/' ? '-inicio' : item.to.replace('/', '-')}`}
               title={col ? item.etiqueta : undefined}
               className={({ isActive }) => cn(fila, isActive ? 'text-fg' : 'text-muted hover:bg-surface-2 hover:text-fg')}>
               
@@ -117,31 +117,19 @@ export function Sidebar() {
 
         <button
           type="button"
-          onClick={() => setDirectorAbierto((v) => !v)}
-          aria-pressed={directorAbierto}
-          title={col ? `Director (${mod}J)` : undefined}
-          className={cn(fila, directorAbierto ? 'bg-surface-2 text-fg' : 'text-muted hover:bg-surface-2 hover:text-fg')}>
-          
-          <AgentAvatar agente="director" tamano="sm" className="-ml-0.5" />
+          onClick={() => guia.setAbierto((v) => !v)}
+          data-tour="nav-guia"
+          aria-pressed={guia.abierto}
+          title={col ? `Guía (${mod}J)` : undefined}
+          className={cn(fila, guia.abierto ? 'bg-surface-2 text-fg' : 'text-muted hover:bg-surface-2 hover:text-fg')}>
+
+          <GuiaAvatar tamano="sm" className="-ml-0.5" />
           {!col &&
           <>
-              <span className="flex-1 text-left">Director</span>
+              <span className="flex-1 text-left">Guía</span>
               <Kbd>{mod}J</Kbd>
             </>
           }
-        </button>
-        <button
-          type="button"
-          onClick={() => {
-            setDirectorAbierto(false);
-            guia.setAbierto((v) => !v);
-          }}
-          aria-pressed={guia.abierto}
-          title={col ? 'Guía' : undefined}
-          className={cn(fila, 'mt-0.5', guia.abierto ? 'bg-surface-2 text-fg' : 'text-muted hover:bg-surface-2 hover:text-fg')}>
-
-          <GuiaAvatar tamano="sm" className="-ml-0.5" />
-          {!col && <span className="flex-1 text-left">Guía</span>}
         </button>
       </nav>
 

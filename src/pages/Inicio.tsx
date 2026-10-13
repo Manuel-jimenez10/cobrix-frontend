@@ -1,10 +1,9 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { SendIcon, SettingsIcon } from 'lucide-react';
-import { AgentsRow } from '../components/dashboard/AgentsRow';
+import { LifeBuoyIcon, SendIcon, SettingsIcon } from 'lucide-react';
+import { ActividadReciente } from '../components/dashboard/ActividadReciente';
 import { AgingChart } from '../components/dashboard/AgingChart';
 import { KpiGrid } from '../components/dashboard/KpiGrid';
-import { LiveAgentsFeed } from '../components/dashboard/LiveAgentsFeed';
 import { PorAtender } from '../components/dashboard/PorAtender';
 import { PrioridadHoy } from '../components/dashboard/PrioridadHoy';
 import { FabCobranza } from '../components/layout/FabCobranza';
@@ -15,15 +14,16 @@ import { Skeleton } from '../components/ui/Skeleton';
 import { useCobranza } from '../contexts/CobranzaContext';
 import { useUI } from '../contexts/UIContext';
 import { useAuth } from '../contexts/AuthContext';
+import { useGuia } from '../contexts/GuiaContext';
 import { useEsEscritorio } from '../hooks/useMediaQuery';
 import { formatMXN, saludoPorHora } from '../utils/format';
 import { teclaMod } from '../utils/motion';
 
 function Resumen() {
-  const { dashboard } = useCobranza();
+  const { dashboard, clientes } = useCobranza();
   if (!dashboard) return <Skeleton className="h-5 w-80 max-w-full" />;
   if (dashboard.porCobrar === 0) return <p className="text-[15px] text-muted">Tu cartera está vacía o al día. Carga clientes para empezar a cobrar.</p>;
-  const tareas = Object.values(dashboard.tareasHoy).reduce((s, n) => s + n, 0);
+  const esperan = clientes.filter((c) => c.requiereAtencion).length;
   return (
     <p className="text-[15px] leading-relaxed text-muted">
       {dashboard.vencido > 0 ?
@@ -34,7 +34,13 @@ function Resumen() {
 
       'No tienes saldo vencido.'
       }{' '}
-      Se completaron <span className="tabular-nums">{tareas}</span> tareas hoy.
+      {esperan > 0 ?
+      <>
+          <strong className="font-semibold text-warn">{esperan} {esperan === 1 ? 'cliente espera' : 'clientes esperan'}</strong> tu respuesta.
+        </> :
+
+      'Nadie espera tu respuesta.'
+      }
     </p>);
 
 }
@@ -54,7 +60,8 @@ function DashboardSkeleton() {
 
 export function Inicio() {
   const { dashboard, eventos, clientes, cargando, error, recargar } = useCobranza();
-  const { abrirCobranza, setDirectorAbierto, setPaletaAbierta } = useUI();
+  const { abrirCobranza, setPaletaAbierta } = useUI();
+  const guia = useGuia();
   const escritorio = useEsEscritorio();
   const { perfil } = useAuth();
   const nombre = perfil?.nombre.split(' ')[0];
@@ -77,8 +84,9 @@ export function Inicio() {
   <DashboardSkeleton /> :
 
   <div className="space-y-6">
-        <KpiGrid dashboard={dashboard} />
-        <AgentsRow eventos={eventos} tareasHoy={dashboard.tareasHoy} porAtender={clientes.filter((c) => c.requiereAtencion).length} />
+        <div data-tour="kpis">
+          <KpiGrid dashboard={dashboard} />
+        </div>
         <PorAtender clientes={clientes} />
         <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
           <PrioridadHoy clientes={clientes} />
@@ -100,22 +108,22 @@ export function Inicio() {
                 </div>
               </div>
               <div className="flex shrink-0 gap-2">
-                <Button variante="secundario" onClick={() => setDirectorAbierto(true)}>
-                  Preguntar al Director
+                <Button variante="secundario" icono={LifeBuoyIcon} onClick={() => guia.setAbierto(true)}>
+                  Preguntar a la Guía
                 </Button>
-                <Button variante="primario" icono={SendIcon} onClick={() => abrirCobranza()}>
+                <Button variante="primario" icono={SendIcon} onClick={() => abrirCobranza()} data-tour="iniciar-cobranza">
                   Iniciar cobranza
                 </Button>
               </div>
             </header>
             {contenido}
             <p className="mt-8 text-xs text-muted">
-              Atajos: <span className="tabular-nums">{teclaMod()}K</span> para buscar · <span className="tabular-nums">{teclaMod()}J</span> para hablar con el Director
+              Atajos: <span className="tabular-nums">{teclaMod()}K</span> para buscar · <span className="tabular-nums">{teclaMod()}J</span> para abrir la Guía
             </p>
           </div>
         </div>
         <aside className="sticky top-0 flex h-[100dvh] flex-col border-l border-line bg-surface/40">
-          <LiveAgentsFeed eventos={eventos} cargando={cargando} className="h-full" />
+          <ActividadReciente eventos={eventos} cargando={cargando} className="h-full" />
         </aside>
       </div>);
 
@@ -140,7 +148,7 @@ export function Inicio() {
       <div className="space-y-6 px-4">
         {contenido}
         <div className="overflow-hidden rounded-2xl border border-line bg-surface">
-          <LiveAgentsFeed eventos={eventos} limite={6} cargando={cargando} />
+          <ActividadReciente eventos={eventos} limite={6} cargando={cargando} />
         </div>
       </div>
       <FabCobranza />

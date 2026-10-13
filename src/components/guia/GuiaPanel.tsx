@@ -2,7 +2,6 @@ import React, { useEffect } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { LifeBuoyIcon, RotateCcwIcon, XIcon } from 'lucide-react';
 import { useGuia } from '../../contexts/GuiaContext';
-import { useUI } from '../../contexts/UIContext';
 import { EASE_OUT } from '../../utils/motion';
 import { IconButton } from '../ui/IconButton';
 import { GuiaAvatar } from './GuiaAvatar';
@@ -11,7 +10,6 @@ import { GuiaChat } from './GuiaChat';
 /** Escritorio: botón flotante de ayuda y panel de la Guía, disponible en cualquier pantalla. */
 export function GuiaPanel() {
   const { abierto, setAbierto, reiniciar, generando, mensajes } = useGuia();
-  const { directorAbierto } = useUI();
 
   useEffect(() => {
     if (!abierto) return;
@@ -21,8 +19,6 @@ export function GuiaPanel() {
     window.addEventListener('keydown', alTeclear);
     return () => window.removeEventListener('keydown', alTeclear);
   }, [abierto, setAbierto]);
-
-  if (directorAbierto) return null;
 
   return (
     <>
@@ -65,6 +61,7 @@ export function GuiaPanel() {
         aria-label={abierto ? 'Cerrar Guía' : 'Abrir Guía: ¿cómo uso Cobrix?'}
         aria-expanded={abierto}
         whileTap={{ scale: 0.95 }}
+        data-tour="abrir-guia"
         className="fixed bottom-6 right-6 z-40 flex h-12 items-center gap-2 rounded-full border border-line bg-surface px-4 text-sm font-medium shadow-lg shadow-black/30 transition-colors hover:bg-surface-2">
 
         {abierto ? <XIcon size={18} aria-hidden="true" /> : <LifeBuoyIcon size={18} className="text-brand" aria-hidden="true" />}

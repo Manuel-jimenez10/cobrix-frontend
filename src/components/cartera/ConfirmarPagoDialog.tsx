@@ -3,6 +3,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { toast } from 'sonner';
 import { useCobranza } from '../../contexts/CobranzaContext';
 import { formatMXN } from '../../utils/format';
+import { avisarTutorial } from '../../utils/tutorial';
 import { Button } from '../ui/Button';
 import { Money } from '../ui/Money';
 import { ResponsiveDialog } from '../ui/ResponsiveDialog';
@@ -32,6 +33,7 @@ export function ConfirmarPagoDialog({ clienteId, onCerrar }: ConfirmarPagoDialog
     setFase('guardando');
     try {
       const monto = await marcarPagada(cliente.id);
+      avisarTutorial('pagada');
       setFase('exito');
       toast.success('Pago registrado', { description: `${cliente.empresa} · ${formatMXN(monto)}` });
       setTimeout(onCerrar, 950);
@@ -62,7 +64,7 @@ export function ConfirmarPagoDialog({ clienteId, onCerrar }: ConfirmarPagoDialog
               </div>
           }
             <p className="text-sm leading-relaxed text-muted">
-              Las facturas se marcarán como pagadas y los agentes dejarán de dar seguimiento a este cliente. Hazlo solo si ya confirmaste el depósito.
+              Las facturas se marcarán como pagadas y ya no se le enviarán recordatorios. Hazlo solo si ya confirmaste el depósito.
             </p>
             <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
               <Button variante="fantasma" onClick={onCerrar} disabled={fase === 'guardando'}>

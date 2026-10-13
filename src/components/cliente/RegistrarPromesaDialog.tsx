@@ -2,6 +2,7 @@ import React, { useEffect, useId, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { toast } from 'sonner';
 import * as api from '../../services/api';
+import { avisarTutorial } from '../../utils/tutorial';
 import type { ClienteResumen } from '../../types/cobranza';
 import { cn } from '../../utils/cn';
 import { formatFecha, formatMXN } from '../../utils/format';
@@ -60,6 +61,7 @@ export function RegistrarPromesaDialog({ cliente, onCerrar, onRegistrada }: Regi
       setFase('exito');
       toast.success('Promesa registrada', { description: `${formatMXN(p.monto)} · ${formatFecha(p.fechaCompromiso)}` });
       onRegistrada();
+      avisarTutorial('promesa');
       setTimeout(onCerrar, 900);
     } catch (e) {
       setFase('form');
@@ -84,6 +86,7 @@ export function RegistrarPromesaDialog({ cliente, onCerrar, onRegistrada }: Regi
 
         <motion.form
           key="form"
+          data-tour="form-promesa"
           exit={{ opacity: 0 }}
           transition={{ duration: 0.12 }}
           className="space-y-4"
@@ -145,7 +148,7 @@ export function RegistrarPromesaDialog({ cliente, onCerrar, onRegistrada }: Regi
               <Button variante="fantasma" onClick={onCerrar} disabled={fase === 'guardando'}>
                 Cancelar
               </Button>
-              <Button variante="primario" type="submit" disabled={!valido || fase === 'guardando'}>
+              <Button variante="primario" type="submit" disabled={!valido || fase === 'guardando'} data-tour="confirmar-promesa">
                 {fase === 'guardando' ? 'Registrando…' : 'Registrar promesa'}
               </Button>
             </div>

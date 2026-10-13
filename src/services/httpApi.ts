@@ -1,7 +1,7 @@
 /**
  * Implementación REAL de la capa de servicios.
- *  · Lecturas y acciones → backend de agentes (Hono, en Render) con el JWT de Supabase.
- *  · Respuestas de IA (Director, Guía) y progreso de envíos → streaming NDJSON.
+ *  · Lecturas y acciones → backend de Cobrix (Hono, en Render) con el JWT de Supabase.
+ *  · Respuestas de la Guía (IA) y progreso de envíos → streaming NDJSON.
  *  · Eventos en vivo → Supabase Realtime (RLS: cada usuario solo recibe lo suyo).
  * Las firmas son idénticas a mockApi.ts: los componentes no saben cuál se usa.
  */
@@ -21,7 +21,6 @@ import type {
   PromesaPago,
   ResultadoCobranza } from
 '../types/cobranza';
-import type { EventoDirector, MensajeDirector } from '../types/director';
 import type { EventoGuia, MensajeGuia } from '../types/guia';
 import type { Politicas } from '../types/politicas';
 import { plantillas } from '../data/plantillas';
@@ -98,7 +97,7 @@ export const getCliente = (id: string) => get<ClienteDetalle | null>(`/clientes/
 export const getPromesas = () => get<PromesaConCliente[]>('/promesas');
 export const getEventosAgente = () => get<EventoAgente[]>('/eventos-agente');
 
-/* ───────────── Agentes (streaming) ───────────── */
+/* ───────────── Cobranza y Guía (streaming) ───────────── */
 
 export async function iniciarCobranza(clienteIds: string[], opciones: OpcionesCobranza = {}): Promise<ResultadoCobranza> {
   let resultado: ResultadoCobranza = { enviados: 0, mensajes: [], omitidos: [] };
@@ -128,9 +127,6 @@ export function chatGuia(mensajes: MensajeGuia[], pantalla: string): AsyncGenera
   return ndjson<EventoGuia>('/guia/chat', { mensajes, pantalla });
 }
 
-export function chatDirector(mensajes: MensajeDirector[]): AsyncGenerator<EventoDirector> {
-  return ndjson<EventoDirector>('/director/chat', { mensajes });
-}
 
 /* ───────────── Realtime ───────────── */
 

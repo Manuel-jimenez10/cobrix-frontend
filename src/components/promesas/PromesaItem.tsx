@@ -13,6 +13,7 @@ import { espera } from '../../utils/stream';
 import { Button } from '../ui/Button';
 import { Money } from '../ui/Money';
 import { SuccessCheck } from '../ui/SuccessCheck';
+import { avisarTutorial } from '../../utils/tutorial';
 
 export function PromesaItem({ promesa: p, grupo }: {promesa: PromesaConCliente;grupo: GrupoPromesa;}) {
   const { cumplirPromesa } = useCobranza();
@@ -25,6 +26,7 @@ export function PromesaItem({ promesa: p, grupo }: {promesa: PromesaConCliente;g
       setFase('exito');
       await Promise.all([cumplirPromesa(p.id), espera(650)]);
       toast.success('Promesa cumplida', { description: `${p.cliente.empresa} · ${formatMXN(p.monto)}` });
+      avisarTutorial('cumplir');
     } catch {
       setFase('reposo');
       toast.error('No se pudo actualizar la promesa');
@@ -58,7 +60,7 @@ export function PromesaItem({ promesa: p, grupo }: {promesa: PromesaConCliente;g
         fase === 'exito' ?
         <SuccessCheck tamano={32} /> :
 
-        <Button variante="secundario" tamano="sm" icono={CheckIcon} onClick={marcar} disabled={fase !== 'reposo'} aria-label={`Marcar como cumplida la promesa de ${p.cliente.empresa}`} className="w-11 px-0 sm:w-auto sm:px-3">
+        <Button data-tour="cumplir-promesa" variante="secundario" tamano="sm" icono={CheckIcon} onClick={marcar} disabled={fase !== 'reposo'} aria-label={`Marcar como cumplida la promesa de ${p.cliente.empresa}`} className="w-11 px-0 sm:w-auto sm:px-3">
             <span className="hidden sm:inline">Cumplida</span>
           </Button>
         }

@@ -6,7 +6,6 @@ import { toast } from 'sonner';
 import { useCobranza } from '../../contexts/CobranzaContext';
 import { useUI } from '../../contexts/UIContext';
 import type { ProgresoCobranza } from '../../types/cobranza';
-import { AgentAvatar } from '../ui/AgentAvatar';
 import { Button } from '../ui/Button';
 import { Money } from '../ui/Money';
 import { ResponsiveDialog } from '../ui/ResponsiveDialog';
@@ -15,7 +14,7 @@ import { CobranzaProgreso } from './CobranzaProgreso';
 
 type Fase = 'confirmar' | 'ejecutando' | 'listo' | 'error';
 
-/** Flujo global "Iniciar cobranza": confirmación → Analista prioriza → Redactor envía plantillas → resultado. */
+/** Flujo global "Iniciar cobranza": confirmación → se ordena por prioridad → se envían las plantillas → resultado. */
 export function CobranzaLauncher() {
   const { cobranza, cerrarCobranza } = useUI();
   const { clientes, iniciar, canal } = useCobranza();
@@ -84,13 +83,13 @@ export function CobranzaLauncher() {
                 </div>
                 <ol className="space-y-3">
                   {[
-              { agente: 'analista' as const, texto: 'El Analista ordena la cola por prioridad.' },
-              { agente: 'redactor' as const, texto: `El Redactor envía por ${canal === 'whatsapp' ? 'WhatsApp' : 'el simulador'} la plantilla amable, firme o final según el intento.` },
-              { agente: 'negociador' as const, texto: 'Si un cliente responde, te avisamos para que le contestes tú.' }].
-              map((p) =>
-              <li key={p.agente} className="flex items-center gap-3 text-sm">
-                      <AgentAvatar agente={p.agente} tamano="sm" />
-                      <span className="text-muted">{p.texto}</span>
+              'Se ordenan por prioridad: primero quien más debe y más atraso tiene.',
+              `Cada uno recibe por ${canal === 'whatsapp' ? 'WhatsApp' : 'el simulador'} la plantilla que le toca: amable, firme o aviso final.`,
+              'Si alguien responde, te avisamos para que le contestes tú.'].
+              map((t, i) =>
+              <li key={i} className="flex items-center gap-3 text-sm">
+                      <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-surface-2 text-[11px] font-semibold tabular-nums text-muted">{i + 1}</span>
+                      <span className="text-muted">{t}</span>
                     </li>
               )}
                 </ol>
@@ -126,7 +125,7 @@ export function CobranzaLauncher() {
               <Button variante="fantasma" onClick={cerrarCobranza}>
                 Cancelar
               </Button>
-              <Button variante="primario" icono={SendIcon} onClick={ejecutar} disabled={incluidos.length === 0}>
+              <Button variante="primario" icono={SendIcon} onClick={ejecutar} disabled={incluidos.length === 0} data-tour="confirmar-envio">
                 Enviar {incluidos.length > 1 ? `${incluidos.length} recordatorios` : 'recordatorio'}
               </Button>
             </div>
@@ -158,7 +157,7 @@ export function CobranzaLauncher() {
               
                   {unico ? 'Ver conversación' : 'Ver cartera'}
                 </Button>
-                <Button variante="primario" onClick={cerrarCobranza}>
+                <Button variante="primario" onClick={cerrarCobranza} data-tour="cobranza-listo">
                   Listo
                 </Button>
               </div>

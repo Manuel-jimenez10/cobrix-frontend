@@ -107,6 +107,7 @@ export function ClienteDetalle({ id, modo }: ClienteDetalleProps) {
           key={t.clave}
           role="tab"
           type="button"
+          data-tour={`tab-${t.clave}`}
           aria-selected={pestana === t.clave}
           onClick={() => setPestana(t.clave)}
           className={cn('relative h-11 px-3 text-sm font-medium transition-colors duration-150', pestana === t.clave ? 'text-fg' : 'text-muted hover:text-fg')}>

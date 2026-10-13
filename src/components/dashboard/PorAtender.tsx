@@ -15,7 +15,7 @@ export function PorAtender({ clientes }: {clientes: ClienteResumen[];}) {
   if (!lista.length) return null;
 
   return (
-    <section aria-labelledby="atencion-titulo" className="overflow-hidden rounded-2xl border border-warn/30 bg-warn/[0.05]">
+    <section data-tour="por-atender" aria-labelledby="atencion-titulo" className="overflow-hidden rounded-2xl border border-warn/30 bg-warn/[0.05]">
       <header className="flex items-center justify-between gap-3 px-5 pb-2 pt-4">
         <div className="flex items-center gap-2.5">
           <span className="grid h-8 w-8 place-items-center rounded-full bg-warn/15 text-warn" aria-hidden="true">

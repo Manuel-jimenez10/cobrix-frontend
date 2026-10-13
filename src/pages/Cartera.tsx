@@ -230,7 +230,7 @@ export function Cartera() {
             {id ?
           <ClienteDetalle key={id} id={id} modo="panel" /> :
 
-          <EmptyState ilustracion="seleccion" titulo="Selecciona un cliente" descripcion="Verás sus facturas, la conversación y por qué el Analista lo priorizó." className="h-full" />
+          <EmptyState ilustracion="seleccion" titulo="Selecciona un cliente" descripcion="Verás sus facturas, la conversación y por qué tiene esa priorizó." className="h-full" />
           }
           </section>
         </div>

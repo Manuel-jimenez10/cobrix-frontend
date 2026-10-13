@@ -74,16 +74,17 @@ export function ClienteEncabezado({ detalle, modo, onMarcarPagada, onRegistrarPr
           variante="primario"
           icono={SendIcon}
           onClick={() => abrirCobranza([c.id])}
+          data-tour="enviar-recordatorio"
           disabled={c.deuda === 0 || c.escalado || c.requiereAtencion}
           title={c.requiereAtencion ? 'Contéstale primero: espera tu respuesta' : undefined}
           className="col-span-2 lg:col-span-1">
 
           Enviar recordatorio
         </Button>
-        <Button variante="secundario" icono={CalendarPlusIcon} onClick={onRegistrarPromesa} disabled={c.deuda === 0}>
+        <Button variante="secundario" icono={CalendarPlusIcon} onClick={onRegistrarPromesa} disabled={c.deuda === 0} data-tour="registrar-promesa">
           Registrar promesa
         </Button>
-        <Button variante="secundario" icono={CheckIcon} onClick={onMarcarPagada} disabled={c.deuda === 0}>
+        <Button variante="secundario" icono={CheckIcon} onClick={onMarcarPagada} disabled={c.deuda === 0} data-tour="marcar-pagada">
           Marcar pagada
         </Button>
       </div>

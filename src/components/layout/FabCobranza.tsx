@@ -14,6 +14,7 @@ export function FabCobranza() {
       type="button"
       layout
       onClick={() => abrirCobranza()}
+      data-tour="iniciar-cobranza"
       whileTap={{ scale: 0.97 }}
       transition={{ duration: 0.2, ease: EASE_OUT }}
       aria-label="Iniciar cobranza: enviar recordatorios"

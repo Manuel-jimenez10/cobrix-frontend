@@ -67,6 +67,7 @@ export function ClienteSwipeCard({ cliente: c, onAbrir, onCobrar, onPagada }: Cl
         
         <button
           type="button"
+          data-tour={`cliente-${c.id}`}
           onClick={() => {
             if (!arrastrando.current) onAbrir();
           }}
