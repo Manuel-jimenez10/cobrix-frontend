@@ -10,6 +10,7 @@ import { CobranzaLauncher } from '../cartera/CobranzaLauncher';
 import { CommandPalette } from '../CommandPalette';
 import { Tutorial } from '../tutorial/Tutorial';
 import { DirectorPanel } from '../director/DirectorPanel';
+import { GuiaPanel } from '../guia/GuiaPanel';
 import { BottomNav } from './BottomNav';
 import { Sidebar } from './Sidebar';
 
@@ -64,13 +65,14 @@ export function AppShell() {
       </main>
       {!escritorio && !esDetalleMovil && <BottomNav />}
       {escritorio && <DirectorPanel />}
+      {escritorio && location.pathname !== '/guia' && <GuiaPanel />}
       <Tutorial />
       <CommandPalette />
       <CobranzaLauncher />
       <Toaster
         theme={tema === 'oscuro' ? 'dark' : 'light'}
         position={escritorio ? 'bottom-right' : 'top-center'}
-        offset={escritorio ? 24 : 'calc(env(safe-area-inset-top) + 12px)'}
+        offset={escritorio ? { bottom: 88, right: 24 } : 'calc(env(safe-area-inset-top) + 12px)'}
         toastOptions={{
           style: {
             background: 'rgb(var(--surface-2))',

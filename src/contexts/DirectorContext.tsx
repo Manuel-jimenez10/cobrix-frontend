@@ -150,7 +150,7 @@ export function DirectorProvider({ children }: {children: ReactNode;}) {
         setDelegando({ agente: 'redactor', texto: 'El Redactor está escribiendo los mensajes…' });
         const r = await iniciar(bloque.clienteIds, { tono: bloque.tono });
         setDelegando(null);
-        toast.success(`${r.enviados} mensajes enviados`, { description: `Tono ${bloque.tono} · el Negociador atenderá las respuestas` });
+        toast.success(`${r.enviados} mensajes enviados`, { description: `Plantilla ${bloque.tono} · te avisaremos cuando respondan` });
         await responderLocal(convId, `Listo. El Redactor envió ${r.enviados} mensajes con tono ${bloque.tono}. Te aviso en cuanto alguien responda.`);
       } catch {
         toast.error('No se pudieron enviar los mensajes');

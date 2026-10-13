@@ -13,6 +13,8 @@ import {
   UsersIcon } from
 'lucide-react';
 import { useCobranza } from '../../contexts/CobranzaContext';
+import { useGuia } from '../../contexts/GuiaContext';
+import { GuiaAvatar } from '../guia/GuiaAvatar';
 import { useUI } from '../../contexts/UIContext';
 import { cn } from '../../utils/cn';
 import { grupoDePromesa } from '../../utils/cobranza';
@@ -30,7 +32,9 @@ const NAV = [
 
 export function Sidebar() {
   const { sidebarColapsado: col, alternarSidebar, setPaletaAbierta, directorAbierto, setDirectorAbierto, tema, alternarTema } = useUI();
-  const { promesas } = useCobranza();
+  const { promesas, clientes } = useCobranza();
+  const guia = useGuia();
+  const porAtender = clientes.filter((c) => c.requiereAtencion).length;
   const vencidas = promesas.filter((p) => grupoDePromesa(p) === 'vencidas').length;
   const mod = teclaMod();
   const fila = 'relative flex h-10 w-full items-center gap-3 rounded-lg px-2.5 text-sm font-medium transition-colors duration-150';
@@ -85,6 +89,15 @@ export function Sidebar() {
                 }
                     <item.icono size={17} className="relative shrink-0" aria-hidden="true" />
                     {!col && <span className="relative flex-1 truncate">{item.etiqueta}</span>}
+                    {item.to === '/cartera' && porAtender > 0 &&
+                <span
+                  className={cn('relative grid h-5 min-w-5 place-items-center rounded-full bg-warn/15 px-1.5 text-[11px] font-semibold tabular-nums text-warn', col && 'absolute right-1 top-1 h-4 min-w-4 px-1 text-[10px]')}
+                  aria-label={`${porAtender} clientes esperan tu respuesta`}
+                  title="Esperan tu respuesta">
+
+                        {porAtender}
+                      </span>
+                }
                     {item.to === '/promesas' && vencidas > 0 &&
                 <span
                   className={cn('relative grid h-5 min-w-5 place-items-center rounded-full bg-bad/15 px-1.5 text-[11px] font-semibold tabular-nums text-bad', col && 'absolute right-1 top-1 h-4 min-w-4 px-1 text-[10px]')}
@@ -116,6 +129,19 @@ export function Sidebar() {
               <Kbd>{mod}J</Kbd>
             </>
           }
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            setDirectorAbierto(false);
+            guia.setAbierto((v) => !v);
+          }}
+          aria-pressed={guia.abierto}
+          title={col ? 'Guía' : undefined}
+          className={cn(fila, 'mt-0.5', guia.abierto ? 'bg-surface-2 text-fg' : 'text-muted hover:bg-surface-2 hover:text-fg')}>
+
+          <GuiaAvatar tamano="sm" className="-ml-0.5" />
+          {!col && <span className="flex-1 text-left">Guía</span>}
         </button>
       </nav>
 

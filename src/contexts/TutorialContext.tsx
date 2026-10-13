@@ -1,7 +1,7 @@
 import { createContext, type ReactNode, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { escucharTutorial, type PasoTutorial } from '../utils/tutorial';
 
-export const PASOS: PasoTutorial[] = ['cartera', 'director', 'cobranza', 'negociar', 'politicas'];
+export const PASOS: PasoTutorial[] = ['cartera', 'cobranza', 'atender', 'director', 'guia'];
 
 interface Estado {
   completados: PasoTutorial[];

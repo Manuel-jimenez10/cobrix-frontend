@@ -1,7 +1,7 @@
 /**
  * Implementación REAL de la capa de servicios.
  *  · Lecturas y acciones → backend de agentes (Hono, en Render) con el JWT de Supabase.
- *  · Respuestas de IA → streaming NDJSON (una línea JSON por evento).
+ *  · Respuestas de IA (Director, Guía) y progreso de envíos → streaming NDJSON.
  *  · Eventos en vivo → Supabase Realtime (RLS: cada usuario solo recibe lo suyo).
  * Las firmas son idénticas a mockApi.ts: los componentes no saben cuál se usa.
  */
@@ -13,15 +13,16 @@ import type {
   ClienteResumen,
   Dashboard,
   EventoAgente,
-  EventoNegociacion,
   FiltrosClientes,
   Mensaje,
   Plantilla,
   ProgresoCobranza,
   PromesaConCliente,
+  PromesaPago,
   ResultadoCobranza } from
 '../types/cobranza';
 import type { EventoDirector, MensajeDirector } from '../types/director';
+import type { EventoGuia, MensajeGuia } from '../types/guia';
 import type { Politicas } from '../types/politicas';
 import { plantillas } from '../data/plantillas';
 import { env } from '../utils/env';
@@ -100,7 +101,7 @@ export const getEventosAgente = () => get<EventoAgente[]>('/eventos-agente');
 /* ───────────── Agentes (streaming) ───────────── */
 
 export async function iniciarCobranza(clienteIds: string[], opciones: OpcionesCobranza = {}): Promise<ResultadoCobranza> {
-  let resultado: ResultadoCobranza = { enviados: 0, mensajes: [] };
+  let resultado: ResultadoCobranza = { enviados: 0, mensajes: [], omitidos: [] };
   for await (const ev of ndjson<{tipo: 'progreso';progreso: ProgresoCobranza;} | {tipo: 'resultado';resultado: ResultadoCobranza;}>(
     '/cobranza/iniciar',
     { clienteIds, tono: opciones.tono }
@@ -111,8 +112,20 @@ export async function iniciarCobranza(clienteIds: string[], opciones: OpcionesCo
   return resultado;
 }
 
-export function responderComoCliente(clienteId: string, mensaje: string): AsyncGenerator<EventoNegociacion> {
-  return ndjson<EventoNegociacion>('/cobranza/responder', { clienteId, mensaje });
+/** Simulador: el administrador escribe como si fuera el cliente. */
+export const responderComoCliente = async (clienteId: string, mensaje: string) =>
+(await post<{mensaje: Mensaje;}>('/cobranza/responder', { clienteId, mensaje })).mensaje;
+
+/** Una persona del equipo responde al cliente (por el canal activo). */
+export const responderComoEquipo = async (clienteId: string, texto: string) =>
+(await post<{mensaje: Mensaje;}>(`/clientes/${encodeURIComponent(clienteId)}/responder`, { texto })).mensaje;
+
+/** Registra la promesa de pago acordada (fecha AAAA-MM-DD). */
+export const registrarPromesa = async (clienteId: string, datos: {monto: number;fecha: string;}) =>
+(await post<{promesa: PromesaPago;}>(`/clientes/${encodeURIComponent(clienteId)}/promesa`, datos)).promesa;
+
+export function chatGuia(mensajes: MensajeGuia[], pantalla: string): AsyncGenerator<EventoGuia> {
+  return ndjson<EventoGuia>('/guia/chat', { mensajes, pantalla });
 }
 
 export function chatDirector(mensajes: MensajeDirector[]): AsyncGenerator<EventoDirector> {

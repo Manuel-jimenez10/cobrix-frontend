@@ -1,5 +1,5 @@
 /** Pasos del recorrido guiado. Cualquier parte de la app puede avisar que se completó uno. */
-export type PasoTutorial = 'cartera' | 'director' | 'cobranza' | 'negociar' | 'politicas';
+export type PasoTutorial = 'cartera' | 'cobranza' | 'atender' | 'director' | 'guia';
 
 const EVENTO = 'cobrix:tutorial';
 

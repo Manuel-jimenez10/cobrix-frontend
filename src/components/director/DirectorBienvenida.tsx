@@ -10,7 +10,7 @@ export function DirectorBienvenida({ onSugerencia, compacto }: {onSugerencia: (t
       <AgentAvatar agente="director" tamano="lg" />
       <h2 className="mt-4 text-xl font-semibold tracking-tight">¿En qué te ayudo hoy?</h2>
       <p className="mt-2 max-w-sm text-sm leading-relaxed text-muted">
-        Coordino al Analista, al Redactor y al Negociador. Pregúntame por tu cartera o pídeme una acción: nada se ejecuta sin tu confirmación.
+        Conozco tu cartera y coordino al Analista y al Redactor. Pregúntame por tu cartera o pídeme una acción: nada se ejecuta sin tu confirmación.
       </p>
       <div className={compacto ? 'mt-6 grid w-full gap-2' : 'mt-8 grid w-full max-w-lg gap-2 sm:grid-cols-2'}>
         {sugerenciasDirector.map((s, i) =>

@@ -1,13 +1,14 @@
 # Cobrix · Frontend
 
-Cobrix es una app de cobranza para PyMEs mexicanas. Un equipo de **cuatro agentes de IA** prioriza la cartera, escribe a los deudores por **WhatsApp**, negocia fechas de pago y le reporta al administrador. El administrador conversa con el agente coordinador y **confirma cada envío**: es un esquema *human in the loop*.
+Cobrix es una app de cobranza por **WhatsApp** para PyMEs mexicanas. Automatiza lo repetitivo, que es decidir a quién cobrar primero y mandar los recordatorios con plantillas aprobadas por Meta, y deja la conversación con el cliente en manos de una persona del equipo, porque en este negocio la relación es personal. Dos asistentes de IA acompañan al usuario: el **Director** responde sobre la cartera y la **Guía** le enseña a usar la app.
 
-| Agente | Qué hace | Cómo está construido |
+| Pieza | Qué hace | Cómo está construida |
 |---|---|---|
-| **Director** | Conversa con el administrador, le da el estado de la cartera y delega en los demás agentes | `streamText` + 7 herramientas. Responde con componentes de UI dentro del chat: KPIs, gráficas, listas y confirmaciones |
-| **Analista** | Decide a quién cobrar primero y por qué | Score base determinista + `generateObject` (Zod) que lo ajusta ±15 y redacta la razón |
-| **Redactor** | Escribe el mensaje con el tono adecuado (amable → firme → final) | Fuera de la ventana de 24 h usa plantillas aprobadas por Meta; dentro de la ventana, la IA redacta |
-| **Negociador** | Contesta al deudor y registra promesas de pago o escala a un humano | `streamText` con *tool calling*: `registrar_promesa` y `escalar_a_humano` |
+| **Analista** (automático) | Decide a quién cobrar primero y explica por qué | Score 0-100 por reglas: atraso, monto, mensajes sin respuesta y promesas. Instantáneo y explicable |
+| **Redactor** (automático) | Envía el recordatorio que toca: amable → firme → final | Siempre plantilla aprobada por Meta, así que vale dentro y fuera de la ventana de 24 h |
+| **Tu equipo** (personas) | Contesta a los clientes y registra promesas de pago | Cuando un cliente responde queda en **"Requiere atención"** y sus recordatorios se pausan |
+| **Director** (IA) | Responde sobre la cartera con datos reales y prepara envíos que tú confirmas | `streamText` + 9 herramientas. Responde con KPIs, gráficas, listas y confirmaciones dentro del chat |
+| **Guía** (IA) | Enseña a usar Cobrix y lleva al usuario a la pantalla correcta | `streamText` con un manual de la app, el estado real de la cuenta (`estado_de_mi_cuenta`) y botones de navegación (`mostrar_boton`) |
 
 > Este repo es la **interfaz** (React + Vite + Tailwind + Framer Motion). Los agentes, la base de datos y WhatsApp viven en el repo **cobrix-backend** de la misma organización.
 
@@ -21,7 +22,9 @@ Cobrix es una app de cobranza para PyMEs mexicanas. Un equipo de **cuatro agente
 ## Lo que puede probar un visitante
 
 - `/demo` entra directo como invitado, sin login.
-- Un **recorrido guiado** de 5 pasos: revisar la cartera, preguntarle al Director, lanzar una cobranza con IA, responder como cliente y ajustar las políticas de negociación.
+- Un **recorrido guiado** de 5 pasos: revisar la cartera, enviar recordatorios, simular la respuesta de un cliente y contestarle, preguntarle al Director y conocer a la Guía.
+- La **Guía**: en escritorio, el botón "¿Necesitas ayuda?"; en el teléfono, la pestaña Guía.
+- El **simulador**: en cada conversación, "Simular cliente" permite escribir como si fueras el cliente, sin WhatsApp.
 
 ## Estructura
 

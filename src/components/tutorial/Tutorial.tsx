@@ -3,9 +3,10 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { ArrowRightIcon, CheckIcon, ChevronDownIcon, GraduationCapIcon, PartyPopperIcon, XIcon } from 'lucide-react';
 import { useCobranza } from '../../contexts/CobranzaContext';
 import { useDirector } from '../../contexts/DirectorContext';
+import { useGuia } from '../../contexts/GuiaContext';
+import { GuiaAvatar } from '../guia/GuiaAvatar';
 import { PASOS, useTutorial } from '../../contexts/TutorialContext';
 import { useUI } from '../../contexts/UIContext';
-import { AGENTES } from '../../data/agentes';
 import { useEsEscritorio } from '../../hooks/useMediaQuery';
 import type { AgenteId } from '../../types/cobranza';
 import { cn } from '../../utils/cn';
@@ -17,12 +18,24 @@ import { ResponsiveDialog } from '../ui/ResponsiveDialog';
 
 const PREGUNTA_DIRECTOR = '¿Cuánto falta por cobrar?';
 
-const INFO: Record<PasoTutorial, {titulo: string;texto: string;accion: string;agente: AgenteId;}> = {
+const INFO: Record<PasoTutorial, {titulo: string;texto: string;accion: string;agente: AgenteId | 'guia';}> = {
   cartera: {
     titulo: 'Revisa tu cartera',
     texto: 'Ve quién debe más y por qué el Analista lo puso primero.',
     accion: 'Ir a Cartera',
     agente: 'analista'
+  },
+  cobranza: {
+    titulo: 'Envía recordatorios',
+    texto: 'El Analista ordena la cola y el Redactor le manda a cada cliente la plantilla que toca.',
+    accion: 'Iniciar cobranza',
+    agente: 'redactor'
+  },
+  atender: {
+    titulo: 'Atiende una respuesta',
+    texto: 'Abre un cliente, simula su respuesta y contéstale tú. Así funciona cuando te escriben por WhatsApp.',
+    accion: 'Abrir un cliente',
+    agente: 'negociador'
   },
   director: {
     titulo: 'Pregúntale al Director',
@@ -30,45 +43,40 @@ const INFO: Record<PasoTutorial, {titulo: string;texto: string;accion: string;ag
     accion: 'Preguntar',
     agente: 'director'
   },
-  cobranza: {
-    titulo: 'Lanza una cobranza con IA',
-    texto: 'Mira al Analista priorizar y al Redactor escribir cada mensaje.',
-    accion: 'Iniciar cobranza',
-    agente: 'redactor'
-  },
-  negociar: {
-    titulo: 'Responde como un cliente',
-    texto: 'Toca una respuesta como "Les pago el viernes" y el Negociador cierra el acuerdo.',
-    accion: 'Abrir un cliente',
-    agente: 'negociador'
-  },
-  politicas: {
-    titulo: 'Ajusta las reglas del Negociador',
-    texto: 'Define plazos, pagos y descuentos. El servidor las hace cumplir.',
-    accion: 'Ver políticas',
-    agente: 'negociador'
+  guia: {
+    titulo: 'Conoce a la Guía',
+    texto: 'Cuando tengas una duda, la Guía te explica cómo hacerlo y te lleva a la pantalla correcta.',
+    accion: 'Abrir la Guía',
+    agente: 'guia'
   }
 };
 
-const EQUIPO: AgenteId[] = ['director', 'analista', 'redactor', 'negociador'];
+const EQUIPO: {agente: AgenteId | 'guia';nombre: string;rol: string;}[] = [
+{ agente: 'analista', nombre: 'Analista', rol: 'Automático · decide a quién cobrar primero' },
+{ agente: 'redactor', nombre: 'Redactor', rol: 'Automático · envía recordatorios con plantillas' },
+{ agente: 'negociador', nombre: 'Tú y tu equipo', rol: 'Contestan a los clientes y acuerdan pagos' },
+{ agente: 'director', nombre: 'Director', rol: 'IA · responde sobre tu cartera' },
+{ agente: 'guia', nombre: 'Guía', rol: 'IA · te enseña a usar la app' }];
+
+const Avatar = ({ agente }: {agente: AgenteId | 'guia';}) => agente === 'guia' ? <GuiaAvatar /> : <AgentAvatar agente={agente} />;
 
 function Bienvenida() {
   const { bienvenidaVista, empezar, saltar } = useTutorial();
   return (
-    <ResponsiveDialog abierto={!bienvenidaVista} onCerrar={saltar} titulo="Bienvenido a Cobrix" descripcion="Un equipo de cuatro agentes de IA que cobra por ti. Esta cartera es de ejemplo y es solo tuya: prueba todo sin miedo.">
+    <ResponsiveDialog abierto={!bienvenidaVista} onCerrar={saltar} titulo="Bienvenido a Cobrix" descripcion="Automatiza los recordatorios de cobranza por WhatsApp; las conversaciones con tus clientes las llevas tú. Esta cartera es de ejemplo y es solo tuya: prueba todo sin miedo.">
       <ul className="mt-1 space-y-2">
-        {EQUIPO.map((id, i) =>
+        {EQUIPO.map((e, i) =>
         <motion.li
-          key={id}
+          key={e.agente}
           initial={{ opacity: 0, y: 6 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.08 + i * 0.06, duration: 0.3, ease: EASE_OUT }}
           className="flex items-center gap-3 rounded-xl border border-line px-3.5 py-3">
 
-            <AgentAvatar agente={id} />
+            <Avatar agente={e.agente} />
             <span className="min-w-0">
-              <span className="block text-sm font-medium">{AGENTES[id].nombre}</span>
-              <span className="block text-xs text-muted">{AGENTES[id].rol}</span>
+              <span className="block text-sm font-medium">{e.nombre}</span>
+              <span className="block text-xs text-muted">{e.rol}</span>
             </span>
           </motion.li>
         )}
@@ -94,10 +102,11 @@ function TarjetaPasos() {
   const { setDirectorAbierto, abrirCobranza, sidebarColapsado, directorAbierto } = useUI();
   const { enviar } = useDirector();
   const { clientes } = useCobranza();
+  const guia = useGuia();
 
   const hechos = PASOS.filter((p) => t.completado(p)).length;
   const siguiente = PASOS.find((p) => !t.completado(p)) ?? null;
-  const ocultaEnMovil = !escritorio && (/^\/cartera\/[^/]+/.test(location.pathname) || location.pathname === '/director');
+  const ocultaEnMovil = !escritorio && (/^\/cartera\/[^/]+/.test(location.pathname) || location.pathname === '/director' || location.pathname === '/guia');
 
   const ejecutar = (p: PasoTutorial) => {
     if (!escritorio) t.setMinimizado(true);
@@ -107,10 +116,13 @@ function TarjetaPasos() {
       navigate('/director');
       setTimeout(() => void enviar(PREGUNTA_DIRECTOR), escritorio ? 350 : 500);
     } else if (p === 'cobranza') abrirCobranza();else
-    if (p === 'negociar') {
-      const candidato = clientes.filter((c) => c.deuda > 0 && !c.escalado).sort((a, b) => b.prioridad.score - a.prioridad.score)[0];
+    if (p === 'atender') {
+      const candidato =
+      clientes.find((c) => c.requiereAtencion) ??
+      clientes.filter((c) => c.deuda > 0 && !c.escalado).sort((a, b) => b.prioridad.score - a.prioridad.score)[0];
       navigate(candidato ? `/cartera/${candidato.id}` : '/cartera');
-    } else navigate('/ajustes');
+    } else if (escritorio) guia.setAbierto(true);else
+    navigate('/guia');
   };
 
   if (!t.activo || !t.bienvenidaVista || ocultaEnMovil || escritorio && directorAbierto) return null;
@@ -152,7 +164,7 @@ function TarjetaPasos() {
         </span>
         <button type="button" onClick={() => t.setMinimizado(!t.minimizado)} className="min-w-0 flex-1 text-left" aria-expanded={!t.minimizado}>
           <span className="block text-sm font-semibold">{t.terminado ? '¡Recorrido completo!' : 'Recorrido guiado'}</span>
-          <span className="block truncate text-xs text-muted">{t.terminado ? 'Ya viste a los cuatro agentes en acción.' : siguiente ? `Siguiente: ${INFO[siguiente].titulo}` : ''}</span>
+          <span className="block truncate text-xs text-muted">{t.terminado ? 'Ya conoces todo el flujo de Cobrix.' : siguiente ? `Siguiente: ${INFO[siguiente].titulo}` : ''}</span>
         </button>
         <button
           type="button"
@@ -175,7 +187,7 @@ function TarjetaPasos() {
                 <div className="flex items-start gap-3">
                   <PartyPopperIcon size={18} className="mt-0.5 shrink-0 text-brand" aria-hidden="true" />
                   <p className="text-sm leading-relaxed text-muted">
-                    Priorizaste, cobraste, negociaste y ajustaste las reglas. Sigue explorando: todo lo que hagas aquí es real y solo afecta tu cartera de ejemplo.
+                    Priorizaste, enviaste recordatorios, atendiste a un cliente y conociste a tus asistentes. Sigue explorando: todo lo que hagas aquí solo afecta tu cartera de ejemplo.
                   </p>
                 </div>
                 <div className="mt-3 flex justify-end">

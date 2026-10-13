@@ -1,10 +1,11 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { SettingsIcon, SparklesIcon } from 'lucide-react';
+import { SendIcon, SettingsIcon } from 'lucide-react';
 import { AgentsRow } from '../components/dashboard/AgentsRow';
 import { AgingChart } from '../components/dashboard/AgingChart';
 import { KpiGrid } from '../components/dashboard/KpiGrid';
 import { LiveAgentsFeed } from '../components/dashboard/LiveAgentsFeed';
+import { PorAtender } from '../components/dashboard/PorAtender';
 import { PrioridadHoy } from '../components/dashboard/PrioridadHoy';
 import { FabCobranza } from '../components/layout/FabCobranza';
 import { MobileHeader } from '../components/layout/MobileHeader';
@@ -21,7 +22,7 @@ import { teclaMod } from '../utils/motion';
 function Resumen() {
   const { dashboard } = useCobranza();
   if (!dashboard) return <Skeleton className="h-5 w-80 max-w-full" />;
-  if (dashboard.porCobrar === 0) return <p className="text-[15px] text-muted">Tu cartera está vacía o al día. Carga clientes para que los agentes empiecen.</p>;
+  if (dashboard.porCobrar === 0) return <p className="text-[15px] text-muted">Tu cartera está vacía o al día. Carga clientes para empezar a cobrar.</p>;
   const tareas = Object.values(dashboard.tareasHoy).reduce((s, n) => s + n, 0);
   return (
     <p className="text-[15px] leading-relaxed text-muted">
@@ -33,7 +34,7 @@ function Resumen() {
 
       'No tienes saldo vencido.'
       }{' '}
-      Los agentes completaron <span className="tabular-nums">{tareas}</span> tareas hoy.
+      Se completaron <span className="tabular-nums">{tareas}</span> tareas hoy.
     </p>);
 
 }
@@ -77,7 +78,8 @@ export function Inicio() {
 
   <div className="space-y-6">
         <KpiGrid dashboard={dashboard} />
-        <AgentsRow eventos={eventos} tareasHoy={dashboard.tareasHoy} />
+        <AgentsRow eventos={eventos} tareasHoy={dashboard.tareasHoy} porAtender={clientes.filter((c) => c.requiereAtencion).length} />
+        <PorAtender clientes={clientes} />
         <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
           <PrioridadHoy clientes={clientes} />
           <AgingChart tramos={dashboard.antiguedad} />
@@ -101,7 +103,7 @@ export function Inicio() {
                 <Button variante="secundario" onClick={() => setDirectorAbierto(true)}>
                   Preguntar al Director
                 </Button>
-                <Button variante="primario" icono={SparklesIcon} onClick={() => abrirCobranza()}>
+                <Button variante="primario" icono={SendIcon} onClick={() => abrirCobranza()}>
                   Iniciar cobranza
                 </Button>
               </div>

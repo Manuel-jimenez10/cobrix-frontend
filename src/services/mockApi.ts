@@ -14,7 +14,6 @@ import type {
   ClienteResumen,
   Dashboard,
   EventoAgente,
-  EventoNegociacion,
   FiltrosClientes,
   Mensaje,
   Plantilla,
@@ -25,7 +24,8 @@ import type {
   Tono } from
 '../types/cobranza';
 import type { EventoDirector, MensajeDirector } from '../types/director';
-import { estadoVentana, llenarPlantilla, siguienteTono } from '../utils/cobranza';
+import type { EventoGuia, MensajeGuia } from '../types/guia';
+import { llenarPlantilla, siguienteTono } from '../utils/cobranza';
 import { formatFecha, formatMXN, normalizar, primerNombre } from '../utils/format';
 import { crearId, escribir, espera } from '../utils/stream';
 import {
@@ -39,7 +39,7 @@ import {
   store,
   suscriptores } from
 './mockDb';
-import { planDirector, responderNegociador } from './simuladores';
+import { planDirector, responderGuia } from './simuladores';
 
 const BASE_RECUPERADO = 126_400;
 const BASE_TAREAS: Record<AgenteId, number> = { director: 6, analista: 18, redactor: 23, negociador: 11 };
@@ -98,6 +98,7 @@ export async function getClientes(filtros: FiltrosClientes = {}): Promise<Client
   }
   if (filtros.estado && filtros.estado !== 'todos') lista = lista.filter((c) => c.estado === filtros.estado);
   if (filtros.prioridad && filtros.prioridad !== 'todas') lista = lista.filter((c) => c.prioridad.nivel === filtros.prioridad);
+  if (filtros.atencion) lista = lista.filter((c) => c.requiereAtencion);
   const orden = filtros.orden ?? 'prioridad';
   lista.sort((a, b) => {
     if (orden === 'monto') return b.deuda - a.deuda;
@@ -151,11 +152,23 @@ export interface OpcionesCobranza {
 export async function iniciarCobranza(clienteIds: string[], opciones: OpcionesCobranza = {}): Promise<ResultadoCobranza> {
   const db = store.db;
   const { onProgreso, tono: tonoForzado } = opciones;
+  const hoy = new Date();
+  hoy.setHours(0, 0, 0, 0);
+  const omitidos: NonNullable<ResultadoCobranza['omitidos']> = [];
   const candidatos = clienteIds.
   map((id) => db.clientes.find((c) => c.id === id)).
   filter((c): c is Cliente => Boolean(c)).
   map((c) => resumir(db, c)).
-  filter((c) => c.deuda > 0 && !c.escalado).
+  filter((c) => {
+    const motivo =
+    c.deuda <= 0 ? 'Sin saldo pendiente' :
+    c.requiereAtencion ? 'Te escribió y espera tu respuesta' :
+    c.escalado ? 'Caso en revisión del equipo' :
+    db.promesas.some((p) => p.clienteId === c.id && p.estado === 'pendiente' && new Date(p.fechaCompromiso) >= hoy) ? 'Tiene una promesa de pago vigente' :
+    null;
+    if (motivo) omitidos.push({ clienteId: c.id, empresa: c.empresa, motivo });
+    return !motivo;
+  }).
   sort((a, b) => b.prioridad.score - a.prioridad.score);
 
   const orden = candidatos.map((c) => ({
@@ -171,21 +184,20 @@ export async function iniciarCobranza(clienteIds: string[], opciones: OpcionesCo
 
   reportar('analizando', null);
   const evA = emitir(db, { agente: 'analista', clienteId: null, accion: 'Priorizando cola de cobranza', detalle: `${candidatos.length} clientes en evaluación`, estado: 'en_progreso' });
-  await espera(1200, 1600);
+  await espera(500, 700);
   actualizarEvento(db, evA.id, {
     estado: 'completado',
     accion: 'Priorizó la cola',
-    detalle: candidatos[0] ? `${candidatos[0].empresa} va primero · score ${candidatos[0].prioridad.score}` : 'Sin clientes por cobrar'
+    detalle: candidatos[0] ? `${candidatos[0].empresa} va primero · score ${candidatos[0].prioridad.score}` : 'Nadie necesita recordatorio ahora'
   });
 
   const mensajes: Mensaje[] = [];
   for (const item of orden) {
     const c = candidatos.find((x) => x.id === item.clienteId);
     if (!c) continue;
-    reportar('redactando', c.id);
-    const evR = emitir(db, { agente: 'redactor', clienteId: c.id, accion: 'Redactando mensaje', detalle: `Tono ${item.tono} para ${c.empresa}`, estado: 'en_progreso' });
-    await espera(750, 1100);
-    const ventana = estadoVentana(db.mensajes.filter((m) => m.clienteId === c.id));
+    reportar('enviando', c.id);
+    const evR = emitir(db, { agente: 'redactor', clienteId: c.id, accion: 'Enviando recordatorio', detalle: `Plantilla ${item.tono} · ${c.empresa}`, estado: 'en_progreso' });
+    await espera(280, 420);
     const plantilla = plantillas.find((p) => p.tono === item.tono) ?? plantillas[0];
     const contenido = llenarPlantilla(plantilla.contenido, {
       nombre: primerNombre(c.nombre),
@@ -194,69 +206,77 @@ export async function iniciarCobranza(clienteIds: string[], opciones: OpcionesCo
       monto: formatMXN(c.deuda),
       dias: String(c.diasAtraso)
     });
-    const mensaje: Mensaje = { id: crearId('msg'), clienteId: c.id, rol: 'agente', agente: 'redactor', contenido, tono: item.tono, esPlantilla: !ventana.abierta, fecha: new Date().toISOString() };
+    const mensaje: Mensaje = { id: crearId('msg'), clienteId: c.id, rol: 'agente', agente: 'redactor', contenido, tono: item.tono, esPlantilla: true, fecha: new Date().toISOString() };
     db.mensajes.push(mensaje);
     mensajes.push(mensaje);
-    reportar('enviando', c.id);
-    await espera(300, 450);
     enviados.push(c.id);
     const canal: Canal = db.canal === 'simulador' ? 'simulador' : c.canal;
     actualizarEvento(db, evR.id, {
       estado: 'completado',
-      accion: canal === 'whatsapp' ? 'Mensaje enviado por WhatsApp' : 'Mensaje enviado al simulador',
-      detalle: `${mensaje.esPlantilla ? 'Plantilla' : 'Mensaje'} ${item.tono} · ${c.empresa}`
+      accion: canal === 'whatsapp' ? 'Recordatorio enviado por WhatsApp' : 'Recordatorio enviado al simulador',
+      detalle: `Plantilla ${item.tono} · ${c.empresa}`
     });
-    reportar('enviando', null);
   }
   reportar('listo', null);
-  return { enviados: enviados.length, mensajes: clonar(mensajes) };
+  return { enviados: enviados.length, mensajes: clonar(mensajes), omitidos };
 }
 
 // POST /cobranza/responder (simulador: el usuario escribe como si fuera el cliente)
-export async function* responderComoCliente(clienteId: string, mensaje: string): AsyncGenerator<EventoNegociacion> {
+export async function responderComoCliente(clienteId: string, mensaje: string): Promise<Mensaje> {
   const db = store.db;
   const cliente = db.clientes.find((c) => c.id === clienteId);
   if (!cliente) throw new Error('Cliente no encontrado');
   await espera(150, 250);
-  const msgCliente: Mensaje = { id: crearId('msg'), clienteId, rol: 'cliente', agente: null, contenido: mensaje, tono: null, esPlantilla: false, fecha: new Date().toISOString() };
-  db.mensajes.push(msgCliente);
-  yield { tipo: 'cliente', mensaje: clonar(msgCliente) };
-
-  const ev = emitir(db, { agente: 'negociador', clienteId, accion: 'Leyendo respuesta', detalle: `${cliente.empresa} respondió`, estado: 'en_progreso' });
-  yield { tipo: 'pensando' };
-  await espera(900, 1400);
-
-  const respuesta = responderNegociador(db, clienteId, mensaje);
-  for await (const delta of escribir(respuesta.texto)) yield { tipo: 'delta', texto: delta };
-
-  const msg: Mensaje = { id: crearId('msg'), clienteId, rol: 'agente', agente: 'negociador', contenido: respuesta.texto, tono: respuesta.tono, esPlantilla: false, fecha: new Date().toISOString() };
+  const msg: Mensaje = { id: crearId('msg'), clienteId, rol: 'cliente', agente: null, contenido: mensaje, tono: null, esPlantilla: false, fecha: new Date().toISOString() };
   db.mensajes.push(msg);
+  emitir(db, { agente: 'analista', clienteId, accion: 'Detectó una respuesta · requiere tu atención', detalle: `${cliente.empresa}: “${mensaje.slice(0, 57)}”`, estado: 'completado' });
+  return clonar(msg);
+}
 
-  if (respuesta.resultado === 'promesa') {
-    const abiertas = facturasAbiertas(db, clienteId).sort((a, b) => b.diasAtraso - a.diasAtraso);
-    const promesa: PromesaPago = {
-      id: crearId('prom'),
-      clienteId,
-      facturaId: abiertas[0]?.id ?? '',
-      monto: respuesta.montoCompromiso ?? suma(abiertas),
-      fechaCompromiso: new Date(Date.now() + (respuesta.diasCompromiso ?? 0) * 86_400_000).toISOString(),
-      estado: 'pendiente'
-    };
-    db.promesas.push(promesa);
-    abiertas.forEach((f) => {
-      f.estado = 'promesa';
-    });
-    actualizarEvento(db, ev.id, { estado: 'completado', accion: 'Registró promesa de pago', detalle: `${formatMXN(promesa.monto)} · ${cliente.empresa} · ${formatFecha(promesa.fechaCompromiso)}` });
-    yield { tipo: 'promesa', promesa: clonar(promesa) };
-  } else if (respuesta.resultado === 'escalar') {
-    const escalamiento = { id: crearId('esc'), clienteId, motivo: respuesta.motivo ?? 'Requiere revisión humana.', fecha: new Date().toISOString(), resuelto: false };
-    db.escalamientos.push(escalamiento);
-    actualizarEvento(db, ev.id, { estado: 'error', accion: 'Escaló a humano', detalle: `${cliente.empresa} · ${escalamiento.motivo}` });
-    yield { tipo: 'escalamiento', escalamiento: clonar(escalamiento) };
-  } else {
-    actualizarEvento(db, ev.id, { estado: 'completado', accion: 'Respondió al cliente', detalle: `${cliente.empresa} · negociación en curso` });
-  }
-  yield { tipo: 'fin', mensaje: clonar(msg) };
+// POST /clientes/:id/responder (una persona del equipo contesta)
+export async function responderComoEquipo(clienteId: string, texto: string): Promise<Mensaje> {
+  const db = store.db;
+  const cliente = db.clientes.find((c) => c.id === clienteId);
+  if (!cliente) throw new Error('Cliente no encontrado');
+  await espera(200, 350);
+  const msg: Mensaje = { id: crearId('msg'), clienteId, rol: 'agente', agente: null, contenido: texto, tono: null, esPlantilla: false, fecha: new Date().toISOString() };
+  db.mensajes.push(msg);
+  emitir(db, { agente: 'negociador', clienteId, accion: 'Respondió al cliente', detalle: cliente.empresa, estado: 'completado' });
+  return clonar(msg);
+}
+
+// POST /clientes/:id/promesa
+export async function registrarPromesa(clienteId: string, datos: {monto: number;fecha: string;}): Promise<PromesaPago> {
+  const db = store.db;
+  const cliente = db.clientes.find((c) => c.id === clienteId);
+  if (!cliente) throw new Error('Cliente no encontrado');
+  await espera(250, 400);
+  const abiertas = facturasAbiertas(db, clienteId).sort((a, b) => b.diasAtraso - a.diasAtraso);
+  if (datos.monto > suma(abiertas) + 0.01) throw new Error(`El monto supera el saldo pendiente (${formatMXN(suma(abiertas))}).`);
+  const promesa: PromesaPago = {
+    id: crearId('prom'),
+    clienteId,
+    facturaId: abiertas[0]?.id ?? '',
+    monto: Math.round(datos.monto * 100) / 100,
+    fechaCompromiso: new Date(`${datos.fecha}T12:00:00`).toISOString(),
+    estado: 'pendiente'
+  };
+  db.promesas.push(promesa);
+  abiertas.forEach((f) => {
+    f.estado = 'promesa';
+  });
+  emitir(db, { agente: 'negociador', clienteId, accion: 'Registró una promesa de pago', detalle: `${formatMXN(promesa.monto)} · ${cliente.empresa} · ${formatFecha(promesa.fechaCompromiso)}`, estado: 'completado' });
+  return clonar(promesa);
+}
+
+// POST /guia/chat (sin backend: preguntas frecuentes)
+export async function* chatGuia(mensajes: MensajeGuia[], _pantalla: string): AsyncGenerator<EventoGuia> {
+  const pregunta = [...mensajes].reverse().find((m) => m.rol === 'usuario')?.texto ?? '';
+  await espera(300, 500);
+  const r = responderGuia(store.db, pregunta);
+  for await (const delta of escribir(r.texto)) yield { tipo: 'delta', texto: delta };
+  for (const accion of r.acciones) yield { tipo: 'accion', accion };
+  yield { tipo: 'fin' };
 }
 
 // POST /director/chat (respuesta en streaming)
@@ -288,14 +308,13 @@ let temporizador: ReturnType<typeof setTimeout> | null = null;
 
 const PLANTILLAS_EVENTO: {agente: AgenteId;enCurso: string;hecho: string;detalle: (c: ClienteResumen, total: number) => string;}[] = [
 { agente: 'analista', enCurso: 'Recalculando prioridad', hecho: 'Actualizó prioridad', detalle: (c) => `${c.empresa} · score ${c.prioridad.score}` },
-{ agente: 'redactor', enCurso: 'Redactando borrador', hecho: 'Preparó borrador', detalle: (c) => `Seguimiento para ${c.empresa}` },
-{ agente: 'negociador', enCurso: 'Revisando conversación', hecho: 'Revisó conversación', detalle: (c) => `${c.empresa} · sin mensajes nuevos` },
+{ agente: 'redactor', enCurso: 'Revisando plantillas', hecho: 'Plantillas al día', detalle: (c) => `Siguiente recordatorio para ${c.empresa}` },
 { agente: 'director', enCurso: 'Supervisando la cola', hecho: 'Revisó la cola de cobranza', detalle: (_, total) => `${total} clientes con saldo pendiente` }];
 
 
 function simularEvento() {
   const db = store.db;
-  const candidatos = db.clientes.map((c) => resumir(db, c)).filter((c) => c.deuda > 0 && !c.escalado);
+  const candidatos = db.clientes.map((c) => resumir(db, c)).filter((c) => c.deuda > 0 && !c.escalado && !c.requiereAtencion);
   if (!candidatos.length) return;
   const c = candidatos[Math.floor(Math.random() * candidatos.length)];
   const t = PLANTILLAS_EVENTO[Math.floor(Math.random() * PLANTILLAS_EVENTO.length)];
@@ -360,7 +379,7 @@ export async function cumplirPromesa(promesaId: string): Promise<void> {
   }
   db.recuperadoSesion += promesa.monto;
   const cliente = db.clientes.find((c) => c.id === promesa.clienteId);
-  emitir(db, { agente: 'negociador', clienteId: promesa.clienteId, accion: 'Promesa cumplida', detalle: `${cliente?.empresa ?? ''} · ${formatMXN(promesa.monto)}`, estado: 'completado' });
+  emitir(db, { agente: 'negociador', clienteId: promesa.clienteId, accion: 'Confirmó una promesa cumplida', detalle: `${cliente?.empresa ?? ''} · ${formatMXN(promesa.monto)}`, estado: 'completado' });
 }
 
 // GET /ajustes

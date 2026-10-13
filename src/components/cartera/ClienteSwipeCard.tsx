@@ -1,6 +1,6 @@
 import React, { useRef } from 'react';
 import { motion, type PanInfo, useMotionValue, useTransform } from 'framer-motion';
-import { CheckIcon, SparklesIcon, TriangleAlertIcon } from 'lucide-react';
+import { CheckIcon, SendIcon, TriangleAlertIcon } from 'lucide-react';
 import type { ClienteResumen } from '../../types/cobranza';
 import { cn } from '../../utils/cn';
 import { ChannelBadge } from '../ui/ChannelBadge';
@@ -17,13 +17,13 @@ interface ClienteSwipeCardProps {
   onPagada: () => void;
 }
 
-/** Tarjeta móvil: deslizar a la derecha = cobrar con IA; a la izquierda = marcar pagada. */
+/** Tarjeta móvil: deslizar a la derecha = enviar recordatorio; a la izquierda = marcar pagada. */
 export function ClienteSwipeCard({ cliente: c, onAbrir, onCobrar, onPagada }: ClienteSwipeCardProps) {
   const x = useMotionValue(0);
   const opacidadCobrar = useTransform(x, [8, UMBRAL], [0, 1]);
   const opacidadPagada = useTransform(x, [-UMBRAL, -8], [1, 0]);
   const arrastrando = useRef(false);
-  const puedeCobrar = c.deuda > 0 && !c.escalado;
+  const puedeCobrar = c.deuda > 0 && !c.escalado && !c.requiereAtencion;
   const puedePagar = c.deuda > 0;
 
   const alSoltar = (_: unknown, __: PanInfo) => {
@@ -44,8 +44,8 @@ export function ClienteSwipeCard({ cliente: c, onAbrir, onCobrar, onPagada }: Cl
     <div className="relative overflow-hidden rounded-2xl">
       <div className="absolute inset-0" aria-hidden="true">
         <motion.div style={{ opacity: opacidadCobrar }} className="absolute inset-0 flex items-center gap-2 bg-brand pl-5 text-sm font-semibold text-on-brand">
-          <SparklesIcon size={18} />
-          Cobrar con IA
+          <SendIcon size={18} />
+          Enviar recordatorio
         </motion.div>
         <motion.div style={{ opacity: opacidadPagada }} className="absolute inset-0 flex items-center justify-end gap-2 bg-surface-2 pr-5 text-sm font-semibold text-ok">
           Marcar pagada

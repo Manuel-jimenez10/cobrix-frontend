@@ -20,6 +20,9 @@ export const getPromesas = impl.getPromesas;
 export const getEventosAgente = impl.getEventosAgente;
 export const iniciarCobranza = impl.iniciarCobranza;
 export const responderComoCliente = impl.responderComoCliente;
+export const responderComoEquipo = impl.responderComoEquipo;
+export const registrarPromesa = impl.registrarPromesa;
+export const chatGuia = impl.chatGuia;
 export const chatDirector = impl.chatDirector;
 export const suscribirEventos = impl.suscribirEventos;
 export const marcarPagada = impl.marcarPagada;
@@ -39,7 +42,7 @@ export const suscribirMensajes = usaDatosMock ? (() => () => {}) as typeof http.
 export const actualizarTelefonoPrueba = usaDatosMock ? async (_: string | null) => {} : http.actualizarTelefonoPrueba;
 export { usaDatosMock };
 
-/* Políticas de negociación: en modo mock viven en memoria. */
+/* Reglas de cobranza: en modo mock viven en memoria. */
 let politicasMock: Politicas = conDefaults({});
 export const getPoliticas = usaDatosMock ? async () => structuredClone(politicasMock) : http.getPoliticas;
 export const guardarPoliticas = usaDatosMock ?

@@ -50,7 +50,7 @@ export function CommandPalette() {
     const acciones: Item[] = [{
       id: 'a-cobranza',
       grupo: 'Acciones',
-      etiqueta: 'Iniciar cobranza con IA',
+      etiqueta: 'Iniciar cobranza (enviar recordatorios)',
       icono: SparklesIcon,
       ejecutar: () => abrirCobranza()
     }, {

@@ -54,7 +54,7 @@ export function Promesas() {
   <EmptyState
     ilustracion="promesas"
     titulo="Aún no hay promesas de pago"
-    descripcion="Cuando un cliente se comprometa a pagar, el Negociador registrará la promesa aquí."
+    descripcion="Cuando acuerdes una fecha con un cliente, regístrala desde su ficha con “Registrar promesa” y aparecerá aquí."
     accion={
     <Button variante="secundario" onClick={() => navigate('/cartera')}>
           Ir a la cartera

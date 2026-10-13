@@ -12,7 +12,7 @@ import type { AgenteId } from '../types/cobranza';
 import { cn } from '../utils/cn';
 import { EASE_OUT } from '../utils/motion';
 
-const EQUIPO: AgenteId[] = ['director', 'analista', 'redactor', 'negociador'];
+const EQUIPO: AgenteId[] = ['analista', 'redactor', 'negociador', 'director'];
 
 function Campo({ id, etiqueta, children }: {id: string;etiqueta: string;children: ReactNode;}) {
   return (
@@ -187,12 +187,12 @@ function Escaparate() {
       </div>
       <div className="relative max-w-md">
         <p className="text-[34px] font-semibold leading-[1.1] tracking-tight">
-          Tu equipo de cobranza
+          Los recordatorios, en automático.
           <br />
-          <span className="text-brand">trabaja mientras duermes.</span>
+          <span className="text-brand">La relación, en tus manos.</span>
         </p>
         <p className="mt-4 text-[15px] leading-relaxed text-muted">
-          Cuatro agentes de IA priorizan tu cartera, escriben por WhatsApp, negocian fechas de pago y te reportan. Tú solo confirmas.
+          Cobrix decide a quién cobrar primero y envía los recordatorios por WhatsApp. Cuando un cliente responde, te avisa para que tú cierres el acuerdo. Un Director y una Guía con IA te ayudan en todo momento.
         </p>
         <ul className="mt-9 space-y-3">
           {EQUIPO.map((id, i) =>

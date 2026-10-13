@@ -1,5 +1,5 @@
 import React from 'react';
-import { CheckIcon, MailIcon, PhoneIcon, SparklesIcon, TriangleAlertIcon } from 'lucide-react';
+import { BellRingIcon, CalendarPlusIcon, CheckIcon, MailIcon, PhoneIcon, SendIcon, TriangleAlertIcon } from 'lucide-react';
 import { useUI } from '../../contexts/UIContext';
 import type { ClienteDetalle } from '../../types/cobranza';
 import { cn } from '../../utils/cn';
@@ -13,9 +13,10 @@ interface ClienteEncabezadoProps {
   detalle: ClienteDetalle;
   modo: 'panel' | 'pantalla';
   onMarcarPagada: () => void;
+  onRegistrarPromesa: () => void;
 }
 
-export function ClienteEncabezado({ detalle, modo, onMarcarPagada }: ClienteEncabezadoProps) {
+export function ClienteEncabezado({ detalle, modo, onMarcarPagada, onRegistrarPromesa }: ClienteEncabezadoProps) {
   const { abrirCobranza } = useUI();
   const c = detalle.cliente;
   const escalamiento = detalle.escalamientos.find((e) => !e.resuelto);
@@ -50,23 +51,39 @@ export function ClienteEncabezado({ detalle, modo, onMarcarPagada }: ClienteEnca
         <StatusBadge estado={c.estado} />
         {c.deuda > 0 && <PriorityBadge nivel={c.prioridad.nivel} />}
         <ChannelBadge canal={c.canal} />
+        {c.requiereAtencion &&
+        <span className="inline-flex h-7 items-center gap-1.5 rounded-md bg-warn/10 px-2 text-xs font-medium text-warn">
+            <BellRingIcon size={12} aria-hidden="true" />
+            Espera tu respuesta
+          </span>
+        }
       </div>
 
       {escalamiento &&
       <div role="alert" className="mt-4 flex items-start gap-2.5 rounded-xl border border-bad/30 bg-bad/[0.08] px-3.5 py-3">
           <TriangleAlertIcon size={16} className="mt-0.5 shrink-0 text-bad" aria-hidden="true" />
           <div className="text-sm">
-            <p className="font-medium text-bad">Escalado a humano</p>
+            <p className="font-medium text-bad">En revisión del equipo</p>
             <p className="mt-0.5 text-muted">{escalamiento.motivo}</p>
           </div>
         </div>
       }
 
-      <div className="mt-4 flex gap-2">
-        <Button variante="primario" icono={SparklesIcon} onClick={() => abrirCobranza([c.id])} disabled={c.deuda === 0 || c.escalado} className="flex-1 lg:flex-none">
-          Cobrar con IA
+      <div className="mt-4 grid grid-cols-2 gap-2 lg:flex">
+        <Button
+          variante="primario"
+          icono={SendIcon}
+          onClick={() => abrirCobranza([c.id])}
+          disabled={c.deuda === 0 || c.escalado || c.requiereAtencion}
+          title={c.requiereAtencion ? 'Contéstale primero: espera tu respuesta' : undefined}
+          className="col-span-2 lg:col-span-1">
+
+          Enviar recordatorio
         </Button>
-        <Button variante="secundario" icono={CheckIcon} onClick={onMarcarPagada} disabled={c.deuda === 0} className="flex-1 lg:flex-none">
+        <Button variante="secundario" icono={CalendarPlusIcon} onClick={onRegistrarPromesa} disabled={c.deuda === 0}>
+          Registrar promesa
+        </Button>
+        <Button variante="secundario" icono={CheckIcon} onClick={onMarcarPagada} disabled={c.deuda === 0}>
           Marcar pagada
         </Button>
       </div>

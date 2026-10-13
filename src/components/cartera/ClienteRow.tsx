@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { TriangleAlertIcon } from 'lucide-react';
+import { BellRingIcon, TriangleAlertIcon } from 'lucide-react';
 import type { ClienteResumen } from '../../types/cobranza';
 import { cn } from '../../utils/cn';
 import { EASE_OUT } from '../../utils/motion';
@@ -39,10 +39,16 @@ export function ClienteRow({ cliente: c, activo, onSeleccionar }: ClienteRowProp
           <StatusBadge estado={c.estado} />
           {c.deuda > 0 && <PriorityBadge nivel={c.prioridad.nivel} />}
           <ChannelBadge canal={c.canal} />
+          {c.requiereAtencion &&
+          <span className="inline-flex h-6 items-center gap-1 rounded-md bg-warn/10 px-2 text-xs font-medium text-warn">
+              <BellRingIcon size={12} aria-hidden="true" />
+              Espera respuesta
+            </span>
+          }
           {c.escalado &&
           <span className="inline-flex h-6 items-center gap-1 rounded-md bg-bad/10 px-2 text-xs font-medium text-bad">
               <TriangleAlertIcon size={12} aria-hidden="true" />
-              Escalado
+              En revisión
             </span>
           }
         </div>

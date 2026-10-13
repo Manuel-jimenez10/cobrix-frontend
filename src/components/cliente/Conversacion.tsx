@@ -1,16 +1,14 @@
-import React, { Fragment, useEffect, useRef } from 'react';
+import React, { Fragment, useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
-import { TriangleAlertIcon } from 'lucide-react';
-import { useNegociacion } from '../../hooks/useNegociacion';
+import { BellRingIcon } from 'lucide-react';
+import { useConversacion, type Autor } from '../../hooks/useConversacion';
 import type { ClienteDetalle } from '../../types/cobranza';
-import { etiquetaDia, formatFecha } from '../../utils/format';
+import { estadoVentana } from '../../utils/cobranza';
+import { etiquetaDia, primerNombre } from '../../utils/format';
 import { EASE_OUT } from '../../utils/motion';
-import { AgentAvatar } from '../ui/AgentAvatar';
 import { ChannelBadge } from '../ui/ChannelBadge';
-import { Money } from '../ui/Money';
-import { SuccessCheck } from '../ui/SuccessCheck';
+import { Composer } from './Composer';
 import { MessageBubble } from './MessageBubble';
-import { SimuladorComposer } from './SimuladorComposer';
 import { VentanaIndicator } from './VentanaIndicator';
 
 interface ConversacionProps {
@@ -21,14 +19,30 @@ interface ConversacionProps {
 
 export function Conversacion({ detalle, actualizar, recargar }: ConversacionProps) {
   const { cliente, mensajes } = detalle;
-  const { enviar, ocupado, pensando, textoStream, avisos } = useNegociacion(cliente.id, actualizar, recargar);
+  const { enviar, ocupado } = useConversacion(cliente.id, actualizar, recargar);
+  // Si el cliente espera respuesta, se escribe como equipo; si no, se puede simular su respuesta.
+  const [autor, setAutor] = useState<Autor>(cliente.requiereAtencion ? 'equipo' : 'cliente');
   const listaRef = useRef<HTMLDivElement>(null);
   const reducir = useReducedMotion();
+  const ventana = estadoVentana(mensajes);
+
+  useEffect(() => {
+    setAutor(cliente.requiereAtencion ? 'equipo' : 'cliente');
+    // Solo al cambiar de cliente.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cliente.id]);
 
   useEffect(() => {
     const el = listaRef.current;
     if (el) el.scrollTo({ top: el.scrollHeight, behavior: reducir ? 'auto' : 'smooth' });
-  }, [mensajes.length, textoStream, pensando, avisos.length, reducir]);
+  }, [mensajes.length, reducir]);
+
+  const alEnviar = async (texto: string) => {
+    const ok = await enviar(texto, autor);
+    // Tras simular la respuesta del cliente, el siguiente paso natural es contestarle.
+    if (ok && autor === 'cliente') setAutor('equipo');
+    return ok;
+  };
 
   return (
     <section aria-label="Conversación" className="flex h-full min-h-0 flex-col">
@@ -37,16 +51,36 @@ export function Conversacion({ detalle, actualizar, recargar }: ConversacionProp
         <ChannelBadge canal={cliente.canal} />
       </div>
 
+      <AnimatePresence initial={false}>
+        {cliente.requiereAtencion &&
+        <motion.div
+          key="atencion"
+          initial={{ height: 0, opacity: 0 }}
+          animate={{ height: 'auto', opacity: 1 }}
+          exit={{ height: 0, opacity: 0 }}
+          transition={{ duration: 0.2, ease: EASE_OUT }}
+          className="overflow-hidden border-b border-warn/25 bg-warn/[0.08]">
+
+            <p role="status" className="flex items-start gap-2.5 px-4 py-2.5 text-[13px] lg:px-5">
+              <BellRingIcon size={15} className="mt-0.5 shrink-0 text-warn" aria-hidden="true" />
+              <span>
+                <span className="font-medium text-fg">{primerNombre(cliente.nombre)} espera tu respuesta.</span>{' '}
+                <span className="text-muted">Sus recordatorios automáticos están en pausa hasta que le contestes.</span>
+              </span>
+            </p>
+          </motion.div>
+        }
+      </AnimatePresence>
+
       <div ref={listaRef} className="min-h-0 flex-1 space-y-2 overflow-y-auto px-3 py-4 lg:px-5" aria-live="polite">
-        {mensajes.length === 0 && !ocupado &&
+        {mensajes.length === 0 &&
         <p className="mx-auto max-w-xs py-10 text-center text-sm text-muted">
-            Aún no hay mensajes. Usa “Cobrar con IA” para que el Redactor envíe el primero, o responde como cliente para probar al Negociador.
+            Aún no hay mensajes. Usa “Enviar recordatorio” para mandarle la primera plantilla, o simula una respuesta del cliente para probar.
           </p>
         }
         {mensajes.map((m, i) => {
           const dia = etiquetaDia(m.fecha);
           const nuevoDia = i === 0 || etiquetaDia(mensajes[i - 1].fecha) !== dia;
-          const avisosAqui = avisos.filter((a) => a.despuesDe === m.id);
           return (
             <Fragment key={m.id}>
               {nuevoDia &&
@@ -55,71 +89,19 @@ export function Conversacion({ detalle, actualizar, recargar }: ConversacionProp
                 </div>
               }
               <MessageBubble mensaje={m} />
-              {avisosAqui.map((a) =>
-              a.tipo === 'promesa' ?
-              <motion.div
-                key={a.promesa.id}
-                initial={{ opacity: 0, scale: 0.96 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.22, ease: EASE_OUT }}
-                className="mx-auto my-3 flex max-w-sm items-center gap-3 rounded-2xl border border-promise/30 bg-promise/[0.08] p-3.5">
-                
-                    <SuccessCheck tamano={36} />
-                    <div className="min-w-0">
-                      <p className="text-sm font-medium">Promesa de pago creada</p>
-                      <p className="text-xs text-muted">
-                        <Money valor={a.promesa.monto} className="text-fg" /> · {formatFecha(a.promesa.fechaCompromiso)}
-                      </p>
-                    </div>
-                  </motion.div> :
-
-              <motion.div
-                key={a.escalamiento.id}
-                initial={{ opacity: 0, y: 6 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.22, ease: EASE_OUT }}
-                role="alert"
-                className="mx-auto my-3 flex max-w-sm items-start gap-3 rounded-2xl border border-bad/30 bg-bad/[0.08] p-3.5">
-                
-                    <TriangleAlertIcon size={18} className="mt-0.5 shrink-0 text-bad" aria-hidden="true" />
-                    <div>
-                      <p className="text-sm font-medium text-bad">Escalado a humano</p>
-                      <p className="mt-0.5 text-xs text-muted">{a.escalamiento.motivo} Los recordatorios automáticos quedan en pausa.</p>
-                    </div>
-                  </motion.div>
-
-              )}
             </Fragment>);
 
         })}
-
-        <AnimatePresence>
-          {pensando &&
-          <motion.div key="pensando" initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.16 }} className="flex items-center justify-end gap-2 pt-1">
-              <span className="text-xs font-medium text-negociador">El Negociador está escribiendo</span>
-              <span className="flex gap-1" aria-hidden="true">
-                {[0, 1, 2].map((i) =>
-              <motion.span
-                key={i}
-                className="h-1.5 w-1.5 rounded-full bg-negociador"
-                animate={reducir ? undefined : { opacity: [0.3, 1, 0.3] }}
-                transition={{ duration: 1, repeat: Infinity, delay: i * 0.15 }} />
-
-              )}
-              </span>
-              <AgentAvatar agente="negociador" tamano="sm" activo />
-            </motion.div>
-          }
-        </AnimatePresence>
-        {textoStream !== null &&
-        <MessageBubble
-          streaming
-          mensaje={{ rol: 'agente', agente: 'negociador', contenido: textoStream, tono: null, esPlantilla: false, fecha: new Date().toISOString() }} />
-
-        }
       </div>
 
-      <SimuladorComposer onEnviar={enviar} ocupado={ocupado} />
+      <Composer
+        autor={autor}
+        onCambiarAutor={setAutor}
+        onEnviar={alEnviar}
+        ocupado={ocupado}
+        ventanaAbierta={ventana.abierta}
+        nombreCliente={primerNombre(cliente.nombre)} />
+
     </section>);
 
 }

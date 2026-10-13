@@ -47,7 +47,7 @@ export function DirectorPanel() {
             <AgentAvatar agente="director" />
             <div className="min-w-0 flex-1">
               <h2 className="text-sm font-semibold">Director</h2>
-              <p className="truncate text-xs text-muted">Coordina al Analista, Redactor y Negociador</p>
+              <p className="truncate text-xs text-muted">Responde sobre tu cartera con datos reales</p>
             </div>
             <Kbd>{teclaMod()}J</Kbd>
             <IconButton aria-label="Nueva conversación" onClick={nueva} disabled={generando}>

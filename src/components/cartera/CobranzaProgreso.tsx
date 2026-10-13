@@ -36,8 +36,8 @@ export function CobranzaProgreso({ progreso, canal }: {progreso: ProgresoCobranz
   {
     clave: 'redactor',
     avatar: <AgentAvatar agente="redactor" activo={pasoRedactor === 'activo'} />,
-    titulo: 'Redactor escribe',
-    detalle: pasoRedactor === 'pendiente' ? 'Esperando la cola del Analista' : pasoRedactor === 'hecho' ? 'Mensajes listos con el tono de cada intento' : actual ? `Escribiendo para ${actual.empresa}…` : 'Preparando el siguiente mensaje…',
+    titulo: 'Redactor envía',
+    detalle: pasoRedactor === 'pendiente' ? 'Esperando la cola del Analista' : pasoRedactor === 'hecho' ? 'Plantilla con el tono de cada intento' : actual ? `Plantilla para ${actual.empresa}…` : 'Preparando la siguiente plantilla…',
     estado: pasoRedactor
   },
   {

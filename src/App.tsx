@@ -5,12 +5,14 @@ import { AppShell } from './components/layout/AppShell';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { CobranzaProvider } from './contexts/CobranzaContext';
 import { DirectorProvider } from './contexts/DirectorContext';
+import { GuiaProvider } from './contexts/GuiaContext';
 import { TutorialProvider } from './contexts/TutorialContext';
 import { UIProvider } from './contexts/UIContext';
 import { AuthGate } from './pages/Acceso';
 import { Ajustes } from './pages/Ajustes';
 import { Cartera } from './pages/Cartera';
 import { Director } from './pages/Director';
+import { Guia } from './pages/Guia';
 import { Inicio } from './pages/Inicio';
 import { Promesas } from './pages/Promesas';
 
@@ -27,7 +29,7 @@ function DatosDeUsuario({ children, iniciarVacio }: {children: React.ReactNode;i
     <CobranzaProvider key={sesion?.user.id ?? 'local'} iniciarVacio={iniciarVacio}>
       <DirectorProvider>
         <TutorialProvider key={sesion?.user.id ?? 'local'} usuarioId={sesion?.user.id ?? 'local'}>
-          {children}
+          <GuiaProvider key={sesion?.user.id ?? 'local'}>{children}</GuiaProvider>
         </TutorialProvider>
       </DirectorProvider>
     </CobranzaProvider>);
@@ -48,6 +50,7 @@ export function App({ tema = 'oscuro', datosDeEjemplo = true }: AppProps) {
                     <Route path="cartera/:id?" element={<Cartera />} />
                     <Route path="director" element={<Director />} />
                     <Route path="promesas" element={<Promesas />} />
+                    <Route path="guia" element={<Guia />} />
                     <Route path="ajustes" element={<Ajustes />} />
                     <Route path="demo" element={<Navigate to="/" replace />} />
                     <Route path="*" element={<Navigate to="/" replace />} />

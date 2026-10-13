@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import { useCobranza } from '../../contexts/CobranzaContext';
 import { useClienteDetalle } from '../../hooks/useClienteDetalle';
 import { useMediaQuery } from '../../hooks/useMediaQuery';
 import { cn } from '../../utils/cn';
@@ -15,6 +16,7 @@ import { Conversacion } from './Conversacion';
 import { FacturasList } from './FacturasList';
 import { PromesasCliente } from './PromesasCliente';
 import { RazonAnalista } from './RazonAnalista';
+import { RegistrarPromesaDialog } from './RegistrarPromesaDialog';
 
 type Pestana = 'conversacion' | 'detalle';
 
@@ -45,9 +47,11 @@ function DetalleSkeleton() {
 
 export function ClienteDetalle({ id, modo }: ClienteDetalleProps) {
   const { detalle, cargando, error, actualizar, recargar, reintentar } = useClienteDetalle(id);
+  const { refrescarSilencioso } = useCobranza();
   const anchoXL = useMediaQuery('(min-width: 1280px)');
   const [pestana, setPestana] = useState<Pestana>('conversacion');
   const [pagoAbierto, setPagoAbierto] = useState(false);
+  const [promesaAbierta, setPromesaAbierta] = useState(false);
   const navigate = useNavigate();
   const volver = () => navigate('/cartera');
   const ladoALado = modo === 'panel' && anchoXL;
@@ -89,7 +93,7 @@ export function ClienteDetalle({ id, modo }: ClienteDetalleProps) {
   return (
     <div className="flex h-full min-h-0 flex-col">
       {cabeceraMovil}
-      <ClienteEncabezado detalle={detalle} modo={modo} onMarcarPagada={() => setPagoAbierto(true)} />
+      <ClienteEncabezado detalle={detalle} modo={modo} onMarcarPagada={() => setPagoAbierto(true)} onRegistrarPromesa={() => setPromesaAbierta(true)} />
 
       {!ladoALado &&
       <div role="tablist" aria-label="Secciones del cliente" className="flex gap-1 border-b border-line px-4 lg:px-6">
@@ -120,6 +124,13 @@ export function ClienteDetalle({ id, modo }: ClienteDetalleProps) {
       </div>
 
       <ConfirmarPagoDialog clienteId={pagoAbierto ? detalle.cliente.id : null} onCerrar={() => setPagoAbierto(false)} />
+      <RegistrarPromesaDialog
+        cliente={promesaAbierta ? detalle.cliente : null}
+        onCerrar={() => setPromesaAbierta(false)}
+        onRegistrada={() => {
+          void recargar();
+          void refrescarSilencioso();
+        }} />
     </div>);
 
 }

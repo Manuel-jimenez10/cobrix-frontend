@@ -1,5 +1,5 @@
 import React from 'react';
-import { ArrowUpDownIcon, SearchIcon, XIcon } from 'lucide-react';
+import { ArrowUpDownIcon, BellRingIcon, SearchIcon, XIcon } from 'lucide-react';
 import type { EstadoCliente, FiltrosClientes, NivelPrioridad, OrdenClientes } from '../../types/cobranza';
 import { cn } from '../../utils/cn';
 
@@ -90,6 +90,13 @@ export function FiltrosBar({ filtros, onChange, className }: FiltrosBarProps) {
         </div>
       </div>
       <div className="no-scrollbar -mx-4 flex gap-2 overflow-x-auto px-4 lg:mx-0 lg:flex-wrap lg:px-0" role="group" aria-label="Filtros">
+        <Chip activo={Boolean(filtros.atencion)} onClick={() => set({ atencion: !filtros.atencion })}>
+          <span className="inline-flex items-center gap-1.5">
+            <BellRingIcon size={13} className={filtros.atencion ? '' : 'text-warn'} aria-hidden="true" />
+            Esperan respuesta
+          </span>
+        </Chip>
+        <span className="my-2 w-px shrink-0 bg-line" aria-hidden="true" />
         {ESTADOS.map((e) =>
         <Chip key={e.valor} activo={(filtros.estado ?? 'todos') === e.valor} onClick={() => set({ estado: e.valor })}>
             {e.etiqueta}

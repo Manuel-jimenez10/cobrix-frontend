@@ -1,5 +1,5 @@
 import React, { Fragment, useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { BotIcon, DatabaseIcon, GraduationCapIcon, LogOutIcon, MessageCircleIcon, MonitorSmartphoneIcon, MoonIcon, PhoneIcon, RefreshCwIcon, SunIcon, Trash2Icon } from 'lucide-react';
 import { toast } from 'sonner';
@@ -25,12 +25,12 @@ import { EASE_OUT } from '../utils/motion';
 
 const CANALES: {valor: Canal;etiqueta: string;descripcion: string;icono: typeof MessageCircleIcon;}[] = [
 { valor: 'whatsapp', etiqueta: 'WhatsApp', descripcion: 'Los mensajes llegan al WhatsApp real de cada cliente.', icono: MessageCircleIcon },
-{ valor: 'simulador', etiqueta: 'Simulador', descripcion: 'Modo demo: tú respondes como cliente dentro de la app.', icono: MonitorSmartphoneIcon }];
+{ valor: 'simulador', etiqueta: 'Simulador', descripcion: 'Modo demo: nada sale de la app y puedes simular las respuestas de tus clientes.', icono: MonitorSmartphoneIcon }];
 
 
-function Seccion({ titulo, descripcion, children }: {titulo: string;descripcion?: string;children: React.ReactNode;}) {
+function Seccion({ titulo, descripcion, children, id }: {titulo: string;descripcion?: string;children: React.ReactNode;id?: string;}) {
   return (
-    <section className="grid grid-cols-1 gap-4 border-b border-line py-7 last:border-b-0 lg:grid-cols-[240px_minmax(0,1fr)] lg:gap-10">
+    <section id={id} className="scroll-mt-20 grid grid-cols-1 gap-4 border-b border-line py-7 last:border-b-0 lg:grid-cols-[240px_minmax(0,1fr)] lg:gap-10">
       <div>
         <h2 className="text-sm font-semibold">{titulo}</h2>
         {descripcion && <p className="mt-1 text-sm leading-relaxed text-muted">{descripcion}</p>}
@@ -58,6 +58,14 @@ function ContenidoConVariables({ texto }: {texto: string;}) {
 
 export function Ajustes() {
   const escritorio = useEsEscritorio();
+  const { hash } = useLocation();
+
+  // Enlaces directos (p. ej. desde la Guía): /ajustes#reglas, /ajustes#whatsapp
+  useEffect(() => {
+    if (!hash) return;
+    const t = setTimeout(() => document.getElementById(hash.slice(1))?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 350);
+    return () => clearTimeout(t);
+  }, [hash]);
   const navigate = useNavigate();
   const { canal, cambiarCanal, cargarEjemplo, vaciar, clientes } = useCobranza();
   const { tema, alternarTema } = useUI();
@@ -142,7 +150,7 @@ export function Ajustes() {
               <p className="truncate text-xs text-muted">{perfil.empresa}</p>
               <p className="mt-1.5 flex items-center gap-1.5 text-xs text-muted">
                 <BotIcon size={13} aria-hidden="true" />
-                {perfil.iaActiva ? `Agentes con IA · ${perfil.modelo}` : 'Agentes en modo reglas (sin API key de IA)'}
+                {perfil.iaActiva ? `Director y Guía con IA · ${perfil.modelo}` : 'Director y Guía en modo reglas (sin API key de IA)'}
               </p>
             </div>
             <Button variante="secundario" icono={LogOutIcon} onClick={() => void salir()}>
@@ -151,7 +159,7 @@ export function Ajustes() {
           </div>
         </Seccion>
     }
-      <Seccion titulo="Canal activo" descripcion="Por dónde envían los agentes los mensajes de cobranza.">
+      <Seccion titulo="Canal activo" descripcion="Por dónde salen los recordatorios y tus respuestas.">
         <div role="radiogroup" aria-label="Canal activo" className="grid grid-cols-1 gap-2 sm:grid-cols-2">
           {CANALES.map((c) => {
           const activo = canal === c.valor;
@@ -180,11 +188,11 @@ export function Ajustes() {
         </div>
       </Seccion>
 
-      <Seccion titulo="Políticas de negociación" descripcion="Lo que el Negociador puede ofrecer y cuándo debe pasarle el caso a una persona.">
+      <Seccion id="reglas" titulo="Reglas de cobranza" descripcion="Cuándo se pueden enviar recordatorios automáticos y qué tan firmes pueden ser.">
         <PoliticasForm />
       </Seccion>
 
-      <Seccion titulo="Conexión con WhatsApp" descripcion="Cuenta de WhatsApp Business desde la que salen los mensajes.">
+      <Seccion id="whatsapp" titulo="Conexión con WhatsApp" descripcion="Cuenta de WhatsApp Business desde la que salen los mensajes.">
         {!ajustes ?
       <Skeleton className="h-28 w-full rounded-xl" /> :
 
@@ -221,7 +229,7 @@ export function Ajustes() {
                   Tu WhatsApp para pruebas
                 </label>
                 <p className="mt-1 text-xs leading-relaxed text-muted">
-                  El número de prueba de Meta solo puede escribir a destinatarios registrados. Todos los mensajes de la demo se redirigen aquí y tus respuestas llegan al Negociador.
+                  El número de prueba de Meta solo puede escribir a destinatarios registrados. Todos los mensajes de la demo se redirigen aquí, y lo que respondas desde tu teléfono aparece en la conversación del cliente.
                 </p>
                 <div className="mt-3 flex flex-col gap-2 sm:flex-row">
                   <input
@@ -244,7 +252,7 @@ export function Ajustes() {
       }
       </Seccion>
 
-      <Seccion titulo="Plantillas de mensaje" descripcion="El Redactor usa una por intento. Fuera de la ventana de 24 h, WhatsApp solo permite plantillas aprobadas.">
+      <Seccion titulo="Plantillas de mensaje" descripcion="El Redactor usa una por intento: amable, luego firme y al final el aviso final. Son plantillas aprobadas por Meta, así que se pueden enviar en cualquier momento.">
         <div role="tablist" aria-label="Plantillas" className="mb-4 inline-flex rounded-lg border border-line p-1">
           {plantillas.map((p) =>
         <button
@@ -281,7 +289,7 @@ export function Ajustes() {
         </div>
       </Seccion>
 
-      <Seccion titulo="Recorrido guiado" descripcion="Vuelve a ver el paso a paso para conocer a los cuatro agentes.">
+      <Seccion titulo="Recorrido guiado" descripcion="Vuelve a ver el paso a paso. Si tienes dudas puntuales, pregúntale a la Guía.">
         <Button variante="secundario" icono={GraduationCapIcon} onClick={tutorial.reiniciar}>
           {tutorial.terminado ? 'Repetir recorrido' : 'Ver recorrido'}
         </Button>

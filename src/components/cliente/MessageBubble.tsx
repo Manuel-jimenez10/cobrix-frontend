@@ -15,7 +15,9 @@ interface MessageBubbleProps {
 
 export function MessageBubble({ mensaje: m, streaming = false }: MessageBubbleProps) {
   const esAgente = m.rol === 'agente';
-  const meta = m.agente ? AGENTES[m.agente] : null;
+  // agente null (o el antiguo 'negociador') = lo escribió una persona del equipo.
+  const deEquipo = esAgente && (m.agente === null || m.agente === 'negociador');
+  const meta = m.agente && !deEquipo ? AGENTES[m.agente] : null;
   return (
     <motion.div
       initial={{ opacity: 0, y: 6 }}
@@ -29,9 +31,9 @@ export function MessageBubble({ mensaje: m, streaming = false }: MessageBubblePr
           esAgente ? 'rounded-br-md border border-brand/20 bg-brand/[0.11]' : 'rounded-bl-md border border-line bg-surface-2'
         )}>
         
-        {esAgente && meta &&
+        {esAgente && (meta || deEquipo) &&
         <div className="mb-1 flex flex-wrap items-center gap-1.5">
-            <span className={cn('text-xs font-semibold', meta.texto)}>{meta.nombre}</span>
+            <span className={cn('text-xs font-semibold', meta ? meta.texto : 'text-fg')}>{meta ? meta.nombre === 'Redactor' ? 'Recordatorio automático' : meta.nombre : 'Tu equipo'}</span>
             {m.tono && <ToneBadge tono={m.tono} />}
             {m.esPlantilla && <span className="inline-flex h-5 items-center rounded border border-line px-1.5 text-[11px] font-medium text-muted">Plantilla</span>}
           </div>

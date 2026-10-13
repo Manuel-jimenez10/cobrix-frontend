@@ -1,13 +1,12 @@
 import { type ReactNode, useEffect, useId, useMemo, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { RotateCcwIcon, ShieldCheckIcon } from 'lucide-react';
+import { RotateCcwIcon } from 'lucide-react';
 import { toast } from 'sonner';
 import * as api from '../../services/api';
 import type { Tono } from '../../types/cobranza';
-import { ETIQUETAS_MOTIVO, POLITICAS_DEFAULT, type MotivoEscalamiento, type Politicas } from '../../types/politicas';
+import { POLITICAS_DEFAULT, type Politicas } from '../../types/politicas';
 import { cn } from '../../utils/cn';
 import { EASE_OUT } from '../../utils/motion';
-import { avisarTutorial } from '../../utils/tutorial';
 import { Button } from '../ui/Button';
 import { Skeleton } from '../ui/Skeleton';
 
@@ -125,11 +124,10 @@ export function PoliticasForm() {
   const cambiado = useMemo(() => Boolean(p && guardadas && JSON.stringify(p) !== JSON.stringify(guardadas)), [p, guardadas]);
   const horarioInvalido = Boolean(p?.horario.activo && (p.horario.desde >= p.horario.hasta || p.horario.dias.length === 0));
 
-  if (errorCarga) return <p className="text-sm text-bad">No pudimos cargar las políticas. Recarga la página para intentarlo de nuevo.</p>;
+  if (errorCarga) return <p className="text-sm text-bad">No pudimos cargar las reglas. Recarga la página para intentarlo de nuevo.</p>;
   if (!p) return <Skeleton className="h-72 w-full rounded-xl" />;
 
   const set = (cambios: Partial<Politicas>) => setP((x) => x ? { ...x, ...cambios } : x);
-  const setEscalar = (cambios: Partial<Politicas['escalar']>) => setP((x) => x ? { ...x, escalar: { ...x.escalar, ...cambios } } : x);
   const setHorario = (cambios: Partial<Politicas['horario']>) => setP((x) => x ? { ...x, horario: { ...x.horario, ...cambios } } : x);
 
   const guardar = async () => {
@@ -138,8 +136,7 @@ export function PoliticasForm() {
       const r = await api.guardarPoliticas(p);
       setGuardadas(r);
       setP(r);
-      avisarTutorial('politicas');
-      toast.success('Políticas guardadas', { description: 'El Negociador ya las está aplicando.' });
+      toast.success('Reglas guardadas', { description: 'Se aplican desde el siguiente envío.' });
     } catch (e) {
       toast.error('No se pudieron guardar', { description: (e as Error).message });
     } finally {
@@ -149,73 +146,14 @@ export function PoliticasForm() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-start gap-3 rounded-xl border border-brand/30 bg-brand/[0.05] p-4">
-        <ShieldCheckIcon size={18} className="mt-0.5 shrink-0 text-brand" aria-hidden="true" />
-        <p className="text-sm leading-relaxed text-muted">
-          <span className="font-medium text-fg">Se aplican en el servidor, no solo en el prompt.</span> Si el agente intenta prometer algo fuera de estas reglas, el
-          sistema lo rechaza y lo obliga a reformular.
-        </p>
-      </div>
-
-      <Grupo titulo="Acuerdos de pago">
-        <Fila titulo="Número máximo de pagos" descripcion={p.maxPagos === 1 ? 'Solo se acepta el pago total.' : `El saldo se puede dividir en hasta ${p.maxPagos} pagos, cada 15 días.`}>
-          <Segmentado etiqueta="Número máximo de pagos" opciones={[1, 2, 3, 4, 6]} valor={p.maxPagos} onChange={(v) => set({ maxPagos: v })} formato={(v) => v === 1 ? 'Total' : String(v)} />
-        </Fila>
-        <Fila titulo="Plazo máximo del primer pago" descripcion="Días a partir de hoy que el agente puede aceptar.">
-          <Segmentado etiqueta="Plazo máximo" opciones={[7, 15, 30, 45, 60]} valor={p.plazoMaxDias} onChange={(v) => set({ plazoMaxDias: v })} formato={(v) => `${v} d`} />
-        </Fila>
-        <AnimatePresence initial={false}>
-          {p.maxPagos > 1 &&
-          <motion.div key="inicial" initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} transition={{ duration: 0.2, ease: EASE_OUT }} className="overflow-hidden">
-              <Fila titulo="Pago inicial mínimo" descripcion="Porcentaje del saldo que debe cubrir el primer pago parcial.">
-                <Segmentado etiqueta="Pago inicial mínimo" opciones={[0, 25, 30, 50]} valor={p.pagoInicialMinPct} onChange={(v) => set({ pagoInicialMinPct: v })} formato={(v) => v === 0 ? 'Sin mínimo' : `${v}%`} />
-              </Fila>
-            </motion.div>
-          }
-        </AnimatePresence>
-        <Fila titulo="Descuento por liquidar" descripcion="Solo si el cliente paga todo en una exhibición.">
-          <Segmentado etiqueta="Descuento máximo" opciones={[0, 5, 10, 15]} valor={p.descuentoMaxPct} onChange={(v) => set({ descuentoMaxPct: v })} formato={(v) => v === 0 ? 'Nunca' : `Hasta ${v}%`} />
-        </Fila>
-        <Fila titulo="Tono más fuerte permitido" descripcion="El Redactor no pasará de este nivel, aunque sea el tercer intento.">
+      <Grupo titulo="Recordatorios">
+        <Fila titulo="Tono más fuerte permitido" descripcion="Cada recordatorio sube de tono (amable → firme → final), pero nunca pasa de este nivel.">
           <Segmentado etiqueta="Tono máximo" opciones={TONOS} valor={p.tonoMaximo} onChange={(v) => set({ tonoMaximo: v })} formato={(v) => ETIQUETA_TONO[v]} />
         </Fila>
       </Grupo>
 
-      <Grupo titulo="Escalar a una persona cuando…">
-        {(Object.keys(ETIQUETAS_MOTIVO) as MotivoEscalamiento[]).map((m) =>
-        <Fila key={m} titulo={ETIQUETAS_MOTIVO[m]} enLinea>
-            <Interruptor etiqueta={ETIQUETAS_MOTIVO[m]} activo={p.escalar[m]} onChange={(v) => setEscalar({ [m]: v })} />
-          </Fila>
-        )}
-        <Fila titulo="El saldo supera un monto" descripcion="Los clientes con deudas mayores los atiende siempre una persona.">
-          <div className="flex items-center gap-3">
-            {p.escalar.montoMayorA !== null &&
-            <label className="flex items-center gap-1.5 text-sm text-muted">
-                $
-                <input
-                type="number"
-                inputMode="numeric"
-                min={1000}
-                step={1000}
-                aria-label="Monto límite en MXN"
-                value={p.escalar.montoMayorA}
-                onChange={(e) => setEscalar({ montoMayorA: Math.max(1, Number(e.target.value) || 0) })}
-                className={cn(claseInput, 'w-32')} />
-
-                MXN
-              </label>
-            }
-            <Interruptor
-              etiqueta="Escalar por monto"
-              activo={p.escalar.montoMayorA !== null}
-              onChange={(v) => setEscalar({ montoMayorA: v ? 50_000 : null })} />
-
-          </div>
-        </Fila>
-      </Grupo>
-
       <Grupo titulo="Horario de envío">
-        <Fila enLinea titulo="Limitar horario de cobranza" descripcion="Fuera del horario no se inician envíos. Las respuestas a clientes se atienden siempre.">
+        <Fila enLinea titulo="Limitar horario de envíos" descripcion="Fuera de este horario no se envían recordatorios. Tú puedes contestar a tus clientes cuando quieras.">
           <Interruptor etiqueta="Limitar horario" activo={p.horario.activo} onChange={(v) => setHorario({ activo: v })} />
         </Fila>
         <AnimatePresence initial={false}>
@@ -265,7 +203,7 @@ export function PoliticasForm() {
           <span className="hidden sm:inline">Valores recomendados</span>
         </Button>
         <Button variante="primario" className="flex-1 sm:flex-none" onClick={() => void guardar()} disabled={!cambiado || guardando || horarioInvalido}>
-          {guardando ? 'Guardando…' : 'Guardar políticas'}
+          {guardando ? 'Guardando…' : 'Guardar reglas'}
         </Button>
       </div>
     </div>);

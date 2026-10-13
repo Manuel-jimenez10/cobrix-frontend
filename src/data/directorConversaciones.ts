@@ -109,7 +109,7 @@ export const conversacionesEjemplo: ConversacionDirector[] = [
       { etiqueta: '29 sep', valor: 29450 }]
 
     },
-    { tipo: 'texto', texto: 'El Negociador cerró 3 promesas de pago y solo un caso necesitó intervención humana.' }]
+    { tipo: 'texto', texto: 'Tu equipo cerró 3 promesas de pago esta semana y hay un caso en revisión.' }]
 
   }]
 

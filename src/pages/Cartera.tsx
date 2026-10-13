@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
-import { DatabaseIcon, SearchIcon, SparklesIcon } from 'lucide-react';
+import { DatabaseIcon, SearchIcon, SendIcon } from 'lucide-react';
 import { avisarTutorial } from '../utils/tutorial';
 import { toast } from 'sonner';
 import { ClienteRow } from '../components/cartera/ClienteRow';
@@ -75,7 +75,7 @@ export function Cartera() {
 
   const sinDatos = !cargando && todos.length === 0;
   const total = todos.reduce((s, c) => s + c.deuda, 0);
-  const hayFiltros = Boolean(filtros.busqueda) || filtros.estado !== 'todos' || filtros.prioridad !== 'todas';
+  const hayFiltros = Boolean(filtros.busqueda) || filtros.estado !== 'todos' || filtros.prioridad !== 'todas' || Boolean(filtros.atencion);
 
   const cargar = async () => {
     setCargandoEjemplo(true);
@@ -91,7 +91,7 @@ export function Cartera() {
   <EmptyState
     ilustracion="cartera"
     titulo="Tu cartera está vacía"
-    descripcion="Carga clientes de ejemplo para ver a los agentes priorizar, escribir y negociar en tiempo real."
+    descripcion="Carga clientes de ejemplo para ver cómo se priorizan, se envían recordatorios y se atienden las respuestas."
     accion={
     <Button variante="primario" icono={DatabaseIcon} onClick={cargar} disabled={cargandoEjemplo}>
           {cargandoEjemplo ? 'Cargando…' : 'Cargar datos de ejemplo'}
@@ -106,7 +106,7 @@ export function Cartera() {
     titulo="Sin resultados"
     descripcion="Ningún cliente coincide con la búsqueda o los filtros."
     accion={
-    <Button variante="secundario" onClick={() => setFiltros({ busqueda: '', estado: 'todos', prioridad: 'todas', orden: filtros.orden })}>
+    <Button variante="secundario" onClick={() => setFiltros({ busqueda: '', estado: 'todos', prioridad: 'todas', orden: filtros.orden, atencion: false })}>
           Limpiar filtros
         </Button>
     } />;
@@ -163,7 +163,7 @@ export function Cartera() {
           sinResultados :
 
           <>
-                <p className="px-4 pb-2 pt-3 text-xs text-muted">Desliza una tarjeta: → cobrar con IA · ← marcar pagada</p>
+                <p className="px-4 pb-2 pt-3 text-xs text-muted">Desliza una tarjeta: → enviar recordatorio · ← marcar pagada</p>
                 <motion.ul
               className="space-y-2 px-4 transition-opacity duration-150"
               style={{ opacity: buscando ? 0.6 : 1 }}
@@ -197,8 +197,8 @@ export function Cartera() {
           </span>
         }
         <div className="ml-auto">
-          <Button variante="primario" icono={SparklesIcon} onClick={() => abrirCobranza()} disabled={sinDatos}>
-            Iniciar cobranza con IA
+          <Button variante="primario" icono={SendIcon} onClick={() => abrirCobranza()} disabled={sinDatos}>
+            Iniciar cobranza
           </Button>
         </div>
       </header>
