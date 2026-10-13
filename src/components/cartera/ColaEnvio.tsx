@@ -24,7 +24,7 @@ interface ColaEnvioProps {
  * Cobrix lo registra en la conversación y pasa al siguiente.
  */
 export function ColaEnvio({ borradores, onTerminar }: ColaEnvioProps) {
-  const { registrarEnvio, canal, iaActiva } = useCobranza();
+  const { registrarEnvio, canal, cambiarCanal, iaActiva } = useCobranza();
   const [cola, setCola] = useState(borradores);
   const [i, setI] = useState(0);
   const [texto, setTexto] = useState(borradores[0]?.texto ?? '');
@@ -128,7 +128,12 @@ export function ColaEnvio({ borradores, onTerminar }: ColaEnvioProps) {
 
           <p className="text-xs text-muted">
             {simulador ?
-            'Modo simulador: el mensaje solo se registra en Cobrix, no se abre WhatsApp.' :
+            <>
+                Modo simulador: el mensaje solo se registra en Cobrix, no se abre WhatsApp.{' '}
+                <button type="button" onClick={() => void cambiarCanal('whatsapp')} className="font-medium text-brand underline underline-offset-2">
+                  Enviar por WhatsApp
+                </button>
+              </> :
             'Se abre tu WhatsApp con este chat y el mensaje escrito; solo presiona enviar ahí y regresa a Cobrix.'}
           </p>
         </motion.div>
