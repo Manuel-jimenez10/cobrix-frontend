@@ -1,0 +1,87 @@
+/* @import url() FONT IMPORTS MUST ALWAYS BE AT THE VERY TOP OF THIS FILE, ABOVE THE TAILWIND IMPORTS — DO NOT DELETE THIS COMMENT */
+@import url('https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap');
+
+/* CRITICAL: THE FOLLOWING TAILWIND IMPORTS MUST NEVER BE DELETED OR REORDERED — DO NOT DELETE THIS COMMENT */
+@import 'tailwindcss/base';
+@import 'tailwindcss/components';
+@import 'tailwindcss/utilities';
+
+/* END TAILWIND IMPORTS — ALL OTHER CSS MUST GO BELOW THIS LINE */
+
+:root {
+  --bg: 10 11 13;
+  --surface: 19 21 24;
+  --surface-2: 26 29 33;
+  --line: 36 40 46;
+  --fg: 242 244 247;
+  --muted: 155 163 174;
+  --brand: 52 211 153;
+  --on-brand: 4 28 19;
+  --ok: 52 211 153;
+  --warn: 251 191 36;
+  --bad: 248 113 113;
+  --promise: 96 165 250;
+  --a-director: 242 244 247;
+  --a-analista: 167 139 250;
+  --a-redactor: 56 189 248;
+  --a-negociador: 251 146 60;
+  color-scheme: dark;
+}
+:root.light {
+  --bg: 246 247 249;
+  --surface: 255 255 255;
+  --surface-2: 241 243 246;
+  --line: 226 229 234;
+  --fg: 14 16 19;
+  --muted: 84 92 104;
+  --brand: 4 135 94;
+  --on-brand: 255 255 255;
+  --ok: 4 135 94;
+  --warn: 166 77 6;
+  --bad: 205 38 38;
+  --promise: 37 99 235;
+  --a-director: 14 16 19;
+  --a-analista: 124 58 237;
+  --a-redactor: 2 122 182;
+  --a-negociador: 214 80 10;
+  color-scheme: light;
+}
+html {
+  background-color: rgb(var(--bg));
+}
+body {
+  margin: 0;
+  background-color: rgb(var(--bg));
+  color: rgb(var(--fg));
+  font-family: 'Geist', 'Inter Tight', ui-sans-serif, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  -webkit-tap-highlight-color: transparent;
+}
+:focus-visible {
+  outline: 2px solid rgb(var(--brand));
+  outline-offset: 2px;
+}
+::selection {
+  background: rgb(var(--brand) / 0.3);
+}
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgb(var(--line)) transparent;
+}
+.no-scrollbar {
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

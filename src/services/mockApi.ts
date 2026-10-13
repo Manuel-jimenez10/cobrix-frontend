@@ -1,0 +1,405 @@
+/**
+ * Implementación MOCK de la capa de servicios (datos en memoria).
+ * Se usa cuando no hay VITE_AGENTS_API_URL / Supabase configurados:
+ * así la app sigue funcionando como demo sin backend.
+ */
+import { empresaUsuario, recuperacionSemanal } from '../data/mockData';
+import { plantillas } from '../data/plantillas';
+import type {
+  AgenteId,
+  Ajustes,
+  Canal,
+  Cliente,
+  ClienteDetalle,
+  ClienteResumen,
+  Dashboard,
+  EventoAgente,
+  EventoNegociacion,
+  FiltrosClientes,
+  Mensaje,
+  Plantilla,
+  ProgresoCobranza,
+  PromesaConCliente,
+  PromesaPago,
+  ResultadoCobranza,
+  Tono } from
+'../types/cobranza';
+import type { EventoDirector, MensajeDirector } from '../types/director';
+import { estadoVentana, llenarPlantilla, siguienteTono } from '../utils/cobranza';
+import { formatFecha, formatMXN, normalizar, primerNombre } from '../utils/format';
+import { crearId, escribir, espera } from '../utils/stream';
+import {
+  actualizarEvento,
+  clonar,
+  crearDb,
+  emitir,
+  facturasAbiertas,
+  porFecha,
+  resumir,
+  store,
+  suscriptores } from
+'./mockDb';
+import { planDirector, responderNegociador } from './simuladores';
+
+const BASE_RECUPERADO = 126_400;
+const BASE_TAREAS: Record<AgenteId, number> = { director: 6, analista: 18, redactor: 23, negociador: 11 };
+const suma = (xs: {monto: number;}[]) => xs.reduce((s, x) => s + x.monto, 0);
+
+// GET /dashboard
+export async function getDashboard(): Promise<Dashboard> {
+  await espera(450, 750);
+  const db = store.db;
+  const abiertas = db.facturas.filter((f) => f.estado !== 'pagada');
+  const resumenes = db.clientes.map((c) => resumir(db, c));
+  const conDatos = db.clientes.length > 0;
+  const tramos = [
+  { rango: '0–30', min: 0, max: 30 },
+  { rango: '31–60', min: 31, max: 60 },
+  { rango: '61–90', min: 61, max: 90 },
+  { rango: '+90', min: 91, max: Infinity }];
+
+  const pendientes = db.promesas.filter((p) => p.estado === 'pendiente');
+  const tareasHoy = {} as Record<AgenteId, number>;
+  (Object.keys(BASE_TAREAS) as AgenteId[]).forEach((a) => {
+    tareasHoy[a] = (conDatos ? BASE_TAREAS[a] : 0) + db.tareasSesion[a];
+  });
+
+  return {
+    porCobrar: suma(abiertas),
+    facturasAbiertas: abiertas.length,
+    vencido: suma(abiertas.filter((f) => f.estado === 'vencida')),
+    clientesVencidos: resumenes.filter((r) => r.estado === 'vencido').length,
+    recuperadoMes: (conDatos ? BASE_RECUPERADO : 0) + db.recuperadoSesion,
+    recuperadoVariacion: conDatos ? 18.2 : 0,
+    promesasActivas: pendientes.length,
+    montoPromesas: suma(pendientes),
+    antiguedad: tramos.map((t) => {
+      const fs = abiertas.filter((f) => f.diasAtraso >= t.min && f.diasAtraso <= t.max);
+      return { rango: t.rango, monto: suma(fs), clientes: new Set(fs.map((f) => f.clienteId)).size };
+    }),
+    tareasHoy,
+    recuperacionSemanal: conDatos ?
+    recuperacionSemanal.map((p, i, arr) => i === arr.length - 1 ? { ...p, valor: p.valor + db.recuperadoSesion } : p) :
+    []
+  };
+}
+
+// GET /clientes?busqueda&estado&prioridad&orden
+export async function getClientes(filtros: FiltrosClientes = {}): Promise<ClienteResumen[]> {
+  await espera(220, 420);
+  const db = store.db;
+  const q = normalizar(filtros.busqueda ?? '').trim();
+  let lista = db.clientes.map((c) => resumir(db, c));
+  if (q) {
+    lista = lista.filter((c) => {
+      const folios = db.facturas.filter((f) => f.clienteId === c.id).map((f) => f.folio).join(' ');
+      return normalizar(`${c.empresa} ${c.nombre} ${c.telefono} ${folios}`).includes(q);
+    });
+  }
+  if (filtros.estado && filtros.estado !== 'todos') lista = lista.filter((c) => c.estado === filtros.estado);
+  if (filtros.prioridad && filtros.prioridad !== 'todas') lista = lista.filter((c) => c.prioridad.nivel === filtros.prioridad);
+  const orden = filtros.orden ?? 'prioridad';
+  lista.sort((a, b) => {
+    if (orden === 'monto') return b.deuda - a.deuda;
+    if (orden === 'atraso') return b.diasAtraso - a.diasAtraso;
+    if (orden === 'nombre') return a.empresa.localeCompare(b.empresa, 'es');
+    return b.prioridad.score - a.prioridad.score;
+  });
+  return clonar(lista);
+}
+
+// GET /clientes/:id
+export async function getCliente(id: string): Promise<ClienteDetalle | null> {
+  await espera(280, 480);
+  const db = store.db;
+  const cliente = db.clientes.find((c) => c.id === id);
+  if (!cliente) return null;
+  return clonar({
+    cliente: resumir(db, cliente),
+    facturas: db.facturas.filter((f) => f.clienteId === id).sort((a, b) => b.diasAtraso - a.diasAtraso),
+    mensajes: db.mensajes.filter((m) => m.clienteId === id).sort(porFecha),
+    promesas: db.promesas.filter((p) => p.clienteId === id).sort((a, b) => b.fechaCompromiso.localeCompare(a.fechaCompromiso)),
+    escalamientos: db.escalamientos.filter((e) => e.clienteId === id)
+  });
+}
+
+// GET /promesas
+export async function getPromesas(): Promise<PromesaConCliente[]> {
+  await espera(250, 450);
+  const db = store.db;
+  const lista: PromesaConCliente[] = [];
+  db.promesas.forEach((p) => {
+    const cliente = db.clientes.find((c) => c.id === p.clienteId);
+    if (!cliente) return;
+    lista.push({ ...p, cliente, folio: db.facturas.find((f) => f.id === p.facturaId)?.folio ?? '—' });
+  });
+  return clonar(lista.sort((a, b) => a.fechaCompromiso.localeCompare(b.fechaCompromiso)));
+}
+
+// GET /eventos-agente
+export async function getEventosAgente(): Promise<EventoAgente[]> {
+  await espera(200, 400);
+  return clonar(store.db.eventos);
+}
+
+export interface OpcionesCobranza {
+  tono?: Tono;
+  onProgreso?: (progreso: ProgresoCobranza) => void;
+}
+
+// POST /cobranza/iniciar
+export async function iniciarCobranza(clienteIds: string[], opciones: OpcionesCobranza = {}): Promise<ResultadoCobranza> {
+  const db = store.db;
+  const { onProgreso, tono: tonoForzado } = opciones;
+  const candidatos = clienteIds.
+  map((id) => db.clientes.find((c) => c.id === id)).
+  filter((c): c is Cliente => Boolean(c)).
+  map((c) => resumir(db, c)).
+  filter((c) => c.deuda > 0 && !c.escalado).
+  sort((a, b) => b.prioridad.score - a.prioridad.score);
+
+  const orden = candidatos.map((c) => ({
+    clienteId: c.id,
+    empresa: c.empresa,
+    score: c.prioridad.score,
+    nivel: c.prioridad.nivel,
+    tono: tonoForzado ?? siguienteTono(db.mensajes.filter((m) => m.clienteId === c.id))
+  }));
+  const enviados: string[] = [];
+  const reportar = (fase: ProgresoCobranza['fase'], actualId: string | null) =>
+  onProgreso?.({ fase, orden, actualId, enviados: [...enviados] });
+
+  reportar('analizando', null);
+  const evA = emitir(db, { agente: 'analista', clienteId: null, accion: 'Priorizando cola de cobranza', detalle: `${candidatos.length} clientes en evaluación`, estado: 'en_progreso' });
+  await espera(1200, 1600);
+  actualizarEvento(db, evA.id, {
+    estado: 'completado',
+    accion: 'Priorizó la cola',
+    detalle: candidatos[0] ? `${candidatos[0].empresa} va primero · score ${candidatos[0].prioridad.score}` : 'Sin clientes por cobrar'
+  });
+
+  const mensajes: Mensaje[] = [];
+  for (const item of orden) {
+    const c = candidatos.find((x) => x.id === item.clienteId);
+    if (!c) continue;
+    reportar('redactando', c.id);
+    const evR = emitir(db, { agente: 'redactor', clienteId: c.id, accion: 'Redactando mensaje', detalle: `Tono ${item.tono} para ${c.empresa}`, estado: 'en_progreso' });
+    await espera(750, 1100);
+    const ventana = estadoVentana(db.mensajes.filter((m) => m.clienteId === c.id));
+    const plantilla = plantillas.find((p) => p.tono === item.tono) ?? plantillas[0];
+    const contenido = llenarPlantilla(plantilla.contenido, {
+      nombre: primerNombre(c.nombre),
+      empresa: empresaUsuario.nombre,
+      folio: facturasAbiertas(db, c.id).map((f) => f.folio).join(' y '),
+      monto: formatMXN(c.deuda),
+      dias: String(c.diasAtraso)
+    });
+    const mensaje: Mensaje = { id: crearId('msg'), clienteId: c.id, rol: 'agente', agente: 'redactor', contenido, tono: item.tono, esPlantilla: !ventana.abierta, fecha: new Date().toISOString() };
+    db.mensajes.push(mensaje);
+    mensajes.push(mensaje);
+    reportar('enviando', c.id);
+    await espera(300, 450);
+    enviados.push(c.id);
+    const canal: Canal = db.canal === 'simulador' ? 'simulador' : c.canal;
+    actualizarEvento(db, evR.id, {
+      estado: 'completado',
+      accion: canal === 'whatsapp' ? 'Mensaje enviado por WhatsApp' : 'Mensaje enviado al simulador',
+      detalle: `${mensaje.esPlantilla ? 'Plantilla' : 'Mensaje'} ${item.tono} · ${c.empresa}`
+    });
+    reportar('enviando', null);
+  }
+  reportar('listo', null);
+  return { enviados: enviados.length, mensajes: clonar(mensajes) };
+}
+
+// POST /cobranza/responder (simulador: el usuario escribe como si fuera el cliente)
+export async function* responderComoCliente(clienteId: string, mensaje: string): AsyncGenerator<EventoNegociacion> {
+  const db = store.db;
+  const cliente = db.clientes.find((c) => c.id === clienteId);
+  if (!cliente) throw new Error('Cliente no encontrado');
+  await espera(150, 250);
+  const msgCliente: Mensaje = { id: crearId('msg'), clienteId, rol: 'cliente', agente: null, contenido: mensaje, tono: null, esPlantilla: false, fecha: new Date().toISOString() };
+  db.mensajes.push(msgCliente);
+  yield { tipo: 'cliente', mensaje: clonar(msgCliente) };
+
+  const ev = emitir(db, { agente: 'negociador', clienteId, accion: 'Leyendo respuesta', detalle: `${cliente.empresa} respondió`, estado: 'en_progreso' });
+  yield { tipo: 'pensando' };
+  await espera(900, 1400);
+
+  const respuesta = responderNegociador(db, clienteId, mensaje);
+  for await (const delta of escribir(respuesta.texto)) yield { tipo: 'delta', texto: delta };
+
+  const msg: Mensaje = { id: crearId('msg'), clienteId, rol: 'agente', agente: 'negociador', contenido: respuesta.texto, tono: respuesta.tono, esPlantilla: false, fecha: new Date().toISOString() };
+  db.mensajes.push(msg);
+
+  if (respuesta.resultado === 'promesa') {
+    const abiertas = facturasAbiertas(db, clienteId).sort((a, b) => b.diasAtraso - a.diasAtraso);
+    const promesa: PromesaPago = {
+      id: crearId('prom'),
+      clienteId,
+      facturaId: abiertas[0]?.id ?? '',
+      monto: respuesta.montoCompromiso ?? suma(abiertas),
+      fechaCompromiso: new Date(Date.now() + (respuesta.diasCompromiso ?? 0) * 86_400_000).toISOString(),
+      estado: 'pendiente'
+    };
+    db.promesas.push(promesa);
+    abiertas.forEach((f) => {
+      f.estado = 'promesa';
+    });
+    actualizarEvento(db, ev.id, { estado: 'completado', accion: 'Registró promesa de pago', detalle: `${formatMXN(promesa.monto)} · ${cliente.empresa} · ${formatFecha(promesa.fechaCompromiso)}` });
+    yield { tipo: 'promesa', promesa: clonar(promesa) };
+  } else if (respuesta.resultado === 'escalar') {
+    const escalamiento = { id: crearId('esc'), clienteId, motivo: respuesta.motivo ?? 'Requiere revisión humana.', fecha: new Date().toISOString(), resuelto: false };
+    db.escalamientos.push(escalamiento);
+    actualizarEvento(db, ev.id, { estado: 'error', accion: 'Escaló a humano', detalle: `${cliente.empresa} · ${escalamiento.motivo}` });
+    yield { tipo: 'escalamiento', escalamiento: clonar(escalamiento) };
+  } else {
+    actualizarEvento(db, ev.id, { estado: 'completado', accion: 'Respondió al cliente', detalle: `${cliente.empresa} · negociación en curso` });
+  }
+  yield { tipo: 'fin', mensaje: clonar(msg) };
+}
+
+// POST /director/chat (respuesta en streaming)
+export async function* chatDirector(mensajes: MensajeDirector[]): AsyncGenerator<EventoDirector> {
+  const ultimo = [...mensajes].reverse().find((m) => m.rol === 'usuario');
+  const pregunta = ultimo?.bloques.map((b) => b.tipo === 'texto' ? b.texto : '').join(' ') ?? '';
+  await espera(350, 550);
+  const pasos = planDirector(store.db, pregunta);
+  for (const paso of pasos) {
+    if (paso.tipo === 'delegando') {
+      yield paso;
+      await espera(900, 1300);
+    } else if (paso.tipo === 'texto') {
+      let primero = true;
+      for await (const delta of escribir(paso.texto)) {
+        yield { tipo: 'delta', texto: delta, nuevo: primero };
+        primero = false;
+      }
+    } else {
+      await espera(200, 350);
+      yield { tipo: 'bloque', bloque: paso.bloque };
+    }
+  }
+  yield { tipo: 'fin' };
+}
+
+// Supabase Realtime (simulado): emite eventos de agentes cada pocos segundos
+let temporizador: ReturnType<typeof setTimeout> | null = null;
+
+const PLANTILLAS_EVENTO: {agente: AgenteId;enCurso: string;hecho: string;detalle: (c: ClienteResumen, total: number) => string;}[] = [
+{ agente: 'analista', enCurso: 'Recalculando prioridad', hecho: 'Actualizó prioridad', detalle: (c) => `${c.empresa} · score ${c.prioridad.score}` },
+{ agente: 'redactor', enCurso: 'Redactando borrador', hecho: 'Preparó borrador', detalle: (c) => `Seguimiento para ${c.empresa}` },
+{ agente: 'negociador', enCurso: 'Revisando conversación', hecho: 'Revisó conversación', detalle: (c) => `${c.empresa} · sin mensajes nuevos` },
+{ agente: 'director', enCurso: 'Supervisando la cola', hecho: 'Revisó la cola de cobranza', detalle: (_, total) => `${total} clientes con saldo pendiente` }];
+
+
+function simularEvento() {
+  const db = store.db;
+  const candidatos = db.clientes.map((c) => resumir(db, c)).filter((c) => c.deuda > 0 && !c.escalado);
+  if (!candidatos.length) return;
+  const c = candidatos[Math.floor(Math.random() * candidatos.length)];
+  const t = PLANTILLAS_EVENTO[Math.floor(Math.random() * PLANTILLAS_EVENTO.length)];
+  const ev = emitir(db, { agente: t.agente, clienteId: t.agente === 'director' ? null : c.id, accion: t.enCurso, detalle: t.detalle(c, candidatos.length), estado: 'en_progreso' });
+  setTimeout(() => actualizarEvento(db, ev.id, { estado: 'completado', accion: t.hecho }), 2200 + Math.random() * 1500);
+}
+
+function programar() {
+  temporizador = setTimeout(() => {
+    simularEvento();
+    programar();
+  }, 6000 + Math.random() * 5000);
+}
+
+export function suscribirEventos(callback: (evento: EventoAgente) => void): () => void {
+  suscriptores.add(callback);
+  if (!temporizador) programar();
+  return () => {
+    suscriptores.delete(callback);
+    if (suscriptores.size === 0 && temporizador) {
+      clearTimeout(temporizador);
+      temporizador = null;
+    }
+  };
+}
+
+// POST /facturas/pagar
+export async function marcarPagada(clienteId: string): Promise<number> {
+  await espera(350, 550);
+  const db = store.db;
+  const cliente = db.clientes.find((c) => c.id === clienteId);
+  const abiertas = facturasAbiertas(db, clienteId);
+  const monto = suma(abiertas);
+  abiertas.forEach((f) => {
+    f.estado = 'pagada';
+    f.diasAtraso = 0;
+  });
+  db.promesas.filter((p) => p.clienteId === clienteId && p.estado === 'pendiente').forEach((p) => {
+    p.estado = 'cumplida';
+  });
+  db.recuperadoSesion += monto;
+  emitir(db, { agente: 'director', clienteId, accion: 'Registró pago', detalle: `${cliente?.empresa ?? 'Cliente'} · ${formatMXN(monto)}`, estado: 'completado' });
+  return monto;
+}
+
+// POST /promesas/:id/cumplir
+export async function cumplirPromesa(promesaId: string): Promise<void> {
+  await espera(300, 500);
+  const db = store.db;
+  const promesa = db.promesas.find((p) => p.id === promesaId);
+  if (!promesa) throw new Error('Promesa no encontrada');
+  promesa.estado = 'cumplida';
+  const factura = db.facturas.find((f) => f.id === promesa.facturaId);
+  if (factura && factura.estado !== 'pagada') {
+    if (promesa.monto >= factura.monto - 0.01) {
+      factura.estado = 'pagada';
+      factura.diasAtraso = 0;
+    } else {
+      factura.monto = Math.round((factura.monto - promesa.monto) * 100) / 100;
+      factura.estado = factura.diasAtraso > 0 ? 'vencida' : 'pendiente';
+    }
+  }
+  db.recuperadoSesion += promesa.monto;
+  const cliente = db.clientes.find((c) => c.id === promesa.clienteId);
+  emitir(db, { agente: 'negociador', clienteId: promesa.clienteId, accion: 'Promesa cumplida', detalle: `${cliente?.empresa ?? ''} · ${formatMXN(promesa.monto)}`, estado: 'completado' });
+}
+
+// GET /ajustes
+export async function getAjustes(): Promise<Ajustes> {
+  await espera(150, 300);
+  return {
+    canal: store.db.canal,
+    whatsapp: {
+      conectado: true,
+      numero: '+52 55 4120 8890',
+      proveedor: 'WhatsApp Business Platform · Cloud API',
+      plantillasAprobadas: 3,
+      ultimaSincronizacion: new Date(Date.now() - 2 * 60_000).toISOString()
+    }
+  };
+}
+
+// PATCH /ajustes
+export async function actualizarCanal(canal: Canal): Promise<void> {
+  await espera(200, 350);
+  store.db.canal = canal;
+}
+
+export async function probarConexionWhatsApp(): Promise<boolean> {
+  await espera(900, 1300);
+  return true;
+}
+
+export async function getPlantillas(): Promise<Plantilla[]> {
+  await espera(150, 250);
+  return clonar(plantillas);
+}
+
+export async function cargarDatosEjemplo(): Promise<void> {
+  await espera(600, 900);
+  store.db = crearDb(true, store.db.canal);
+}
+
+export async function vaciarDatos(): Promise<void> {
+  await espera(150, 250);
+  store.db = crearDb(false, store.db.canal);
+}
