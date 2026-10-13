@@ -720,7 +720,7 @@ npm run dev                  # http://localhost:5173`} />
               { t: 'Render (API)', d: 'New → Blueprint con el repo cobrix-backend (usa render.yaml). Pega las variables y en CORS_ORIGINS la URL de Vercel. El workflow de GitHub hace ping a /health cada 5 min con el secreto RENDER_HEALTH_URL.' },
               { t: 'Vercel (frontend)', d: 'Importa cobrix-frontend con el preset Vite y agrega las tres variables VITE_*. vercel.json ya resuelve las rutas de la SPA.' },
               { t: 'Google OAuth', d: 'Google Auth Platform → cliente “Aplicación web”. Redirect URI: https://<proyecto>.supabase.co/auth/v1/callback. Con los permisos básicos no hace falta verificar la app.' },
-              { t: 'WhatsApp (opcional)', d: 'Producto WhatsApp en Meta for Developers, token de usuario de sistema, webhook https://<api>/webhooks/whatsapp con tu verify token suscrito a “messages”, y las 3 plantillas (Utility, es_MX).' }].
+              { t: 'WhatsApp', d: 'En Meta: producto WhatsApp, cuenta de WhatsApp Business con método de pago, token de usuario de sistema y webhook https://<api>/webhooks/whatsapp suscrito a “messages”. En Render: WHATSAPP_TOKEN, WHATSAPP_WABA_ID, WHATSAPP_VERIFY_TOKEN y WHATSAPP_APP_SECRET. Cada empresa conecta su número desde Ajustes (código por SMS) y Cobrix crea las plantillas.' }].
               map((p, i) =>
               <Aparece key={p.t} retraso={i * 0.05}>
                   <li className="flex gap-4 rounded-2xl border border-line bg-surface p-5">

@@ -1,9 +1,10 @@
 import React, { Fragment, useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { BotIcon, DatabaseIcon, GraduationCapIcon, LogOutIcon, MessageCircleIcon, MonitorSmartphoneIcon, MoonIcon, PhoneIcon, RefreshCwIcon, SunIcon, Trash2Icon } from 'lucide-react';
+import { BotIcon, DatabaseIcon, GraduationCapIcon, LogOutIcon, MessageCircleIcon, MonitorSmartphoneIcon, MoonIcon, PhoneIcon, SunIcon, Trash2Icon } from 'lucide-react';
 import { toast } from 'sonner';
 import { PoliticasForm } from '../components/ajustes/PoliticasForm';
+import { WhatsAppConexion } from '../components/ajustes/WhatsAppConexion';
 import { MessageBubble } from '../components/cliente/MessageBubble';
 import { MobileHeader } from '../components/layout/MobileHeader';
 import { Button } from '../components/ui/Button';
@@ -70,7 +71,6 @@ export function Ajustes() {
   const { canal, cambiarCanal, cargarEjemplo, vaciar, clientes } = useCobranza();
   const { tema, alternarTema } = useUI();
   const [ajustes, setAjustes] = useState<AjustesTipo | null>(null);
-  const [probando, setProbando] = useState(false);
   const [tono, setTono] = useState<Tono>('amable');
   const [procesandoDatos, setProcesandoDatos] = useState(false);
   const { perfil, salir } = useAuth();
@@ -100,18 +100,6 @@ export function Ajustes() {
   };
 
   const plantilla = plantillas.find((p) => p.tono === tono) ?? plantillas[0];
-
-  const probar = async () => {
-    setProbando(true);
-    try {
-      await api.probarConexionWhatsApp();
-      toast.success('Conexión verificada', { description: 'WhatsApp Business responde correctamente.' });
-    } catch (e) {
-      toast.error('No se pudo conectar con WhatsApp', { description: (e as Error).message });
-    } finally {
-      setProbando(false);
-    }
-  };
 
   const elegirCanal = async (c: Canal) => {
     if (c === canal) return;
@@ -192,41 +180,14 @@ export function Ajustes() {
         <PoliticasForm />
       </Seccion>
 
-      <Seccion id="whatsapp" titulo="Conexión con WhatsApp" descripcion="Cuenta de WhatsApp Business desde la que salen los mensajes.">
-        {!ajustes ?
-      <Skeleton className="h-28 w-full rounded-xl" /> :
-
-      <div className="rounded-xl border border-line">
-            <div className="flex items-center gap-3 border-b border-line p-4">
-              <span className="relative flex h-2.5 w-2.5" aria-hidden="true">
-                {ajustes.whatsapp.conectado && <span className="absolute inset-0 rounded-full bg-ok opacity-50 motion-safe:animate-ping" />}
-                <span className={cn('relative h-2.5 w-2.5 rounded-full', ajustes.whatsapp.conectado ? 'bg-ok' : 'bg-warn')} />
-              </span>
-              <div className="min-w-0 flex-1">
-                <p className="text-sm font-medium">{ajustes.whatsapp.conectado ? 'Conectado' : 'Desconectado'}</p>
-                <p className="truncate text-xs text-muted">{ajustes.whatsapp.proveedor}</p>
-              </div>
-              <Button variante="secundario" tamano="sm" icono={RefreshCwIcon} onClick={probar} disabled={probando}>
-                {probando ? 'Probando…' : 'Probar'}
-              </Button>
-            </div>
-            <dl className="grid grid-cols-1 gap-px bg-line text-sm sm:grid-cols-3">
-              {[
-          { t: 'Número', v: ajustes.whatsapp.numero },
-          { t: 'Plantillas aprobadas', v: `${ajustes.whatsapp.plantillasAprobadas} de 3` },
-          { t: 'Última sincronización', v: tiempoRelativo(ajustes.whatsapp.ultimaSincronizacion) }].
-          map((d) =>
-          <div key={d.t} className="bg-surface px-4 py-3">
-                  <dt className="text-xs text-muted">{d.t}</dt>
-                  <dd className="mt-0.5 tabular-nums">{d.v}</dd>
-                </div>
-          )}
-            </dl>
-            {!usaDatosMock && !perfil?.esAnonimo &&
-        <div className="border-t border-line p-4">
+      <Seccion id="whatsapp" titulo="Conexión con WhatsApp" descripcion="El número de tu empresa desde el que salen los recordatorios y al que te responden tus clientes.">
+        <div className="space-y-4">
+          <WhatsAppConexion />
+          {!usaDatosMock && !perfil?.esAnonimo &&
+        <div className="rounded-xl border border-line p-4">
                 <label htmlFor="tel-prueba" className="flex items-center gap-2 text-sm font-medium">
                   <PhoneIcon size={14} className="text-muted" aria-hidden="true" />
-                  Tu WhatsApp para pruebas
+                  Tu WhatsApp para pruebas (modo demo)
                 </label>
                 <p className="mt-1 text-xs leading-relaxed text-muted">
                   El número de prueba de Meta solo puede escribir a destinatarios registrados. Todos los mensajes de la demo se redirigen aquí, y lo que respondas desde tu teléfono aparece en la conversación del cliente.
@@ -242,14 +203,13 @@ export function Ajustes() {
               onChange={(e) => setTelefono(e.target.value)}
               className="h-11 min-w-0 flex-1 rounded-lg border border-line bg-surface-2 px-3.5 text-[15px] tabular-nums outline-none transition-colors placeholder:text-muted/70 focus:border-brand/70 focus:ring-2 focus:ring-brand/20 lg:h-9 lg:text-sm" />
             
-                  <Button variante="secundario" onClick={() => void guardarTelefono()} disabled={guardandoTel || telefono.trim() === (ajustes.telefonoPrueba ?? '')}>
+                  <Button variante="secundario" onClick={() => void guardarTelefono()} disabled={guardandoTel || telefono.trim() === (ajustes?.telefonoPrueba ?? '')}>
                     {guardandoTel ? 'Guardando…' : 'Guardar'}
                   </Button>
                 </div>
               </div>
         }
-          </div>
-      }
+        </div>
       </Seccion>
 
       <Seccion titulo="Plantillas de mensaje" descripcion="Se usa una por intento: amable, luego firme y al final el aviso final. Son plantillas aprobadas por Meta, así que se pueden enviar en cualquier momento.">

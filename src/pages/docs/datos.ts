@@ -307,6 +307,83 @@ export const API: GrupoApi[] = [
 
 },
 {
+  id: 'api-whatsapp',
+  titulo: 'WhatsApp de la empresa',
+  descripcion: 'Cada cuenta registra su propio número en la cuenta de WhatsApp Business de Cobrix, sin entrar a Meta. Requiere WHATSAPP_TOKEN y WHATSAPP_WABA_ID en el servidor.',
+  endpoints: [
+  {
+    metodo: 'GET',
+    ruta: '/whatsapp/estado',
+    resumen: 'Estado del número y de las plantillas',
+    acceso: 'sesion',
+    respuesta: `{
+  "disponible": true,
+  "estado": "conectado",              // desconectado | verificando | conectado
+  "numero": "+52 55 4120 8890",
+  "nombre": "Distribuidora del Valle",
+  "calidad": "GREEN",
+  "plantillas": [
+    { "tono": "amable", "nombre": "cobrix_recordatorio_amable", "estado": "APPROVED" },
+    { "tono": "firme",  "nombre": "cobrix_seguimiento_firme",   "estado": "PENDING" }
+  ],
+  "webhookUrl": "https://cobrix-backend-a53u.onrender.com/webhooks/whatsapp"
+}`
+  },
+  {
+    metodo: 'POST',
+    ruta: '/whatsapp/conectar',
+    resumen: 'Paso 1 · registrar el número y pedir el código',
+    detalle: 'POST /{WABA}/phone_numbers y POST /{número}/request_code. El número no debe estar activo en la app de WhatsApp.',
+    acceso: 'sesion',
+    cuerpo: `{ "cc": "52", "numero": "55 4120 8890", "nombre": "Distribuidora del Valle", "metodo": "SMS" }`,
+    respuesta: `{ "estado": "verificando", "numero": "+52 5541208890", … }`,
+    errores: [{ codigo: 409, cuando: 'Número en uso en WhatsApp, límite de números, nombre rechazado o demasiados intentos.' }]
+  },
+  {
+    metodo: 'POST',
+    ruta: '/whatsapp/verificar',
+    resumen: 'Paso 2 · validar el código y activar',
+    detalle: 'verify_code → register (PIN de dos pasos) → subscribed_apps → crea las plantillas que falten. El canal de la cuenta pasa a WhatsApp.',
+    acceso: 'sesion',
+    cuerpo: `{ "codigo": "123456" }`,
+    respuesta: `{ "estado": "conectado", … }`,
+    errores: [{ codigo: 409, cuando: 'Código incorrecto o vencido.' }]
+  },
+  {
+    metodo: 'POST',
+    ruta: '/whatsapp/reenviar',
+    resumen: 'Pedir otro código',
+    acceso: 'sesion',
+    cuerpo: `{ "metodo": "VOICE" }   // SMS | VOICE`,
+    respuesta: `{ "ok": true }`
+  },
+  {
+    metodo: 'POST',
+    ruta: '/whatsapp/plantillas',
+    resumen: 'Crear las plantillas que falten y actualizar su estado',
+    detalle: 'POST /{WABA}/message_templates (categoría UTILITY, es_MX). Es idempotente.',
+    acceso: 'sesion',
+    respuesta: `{ …mismo objeto que GET /whatsapp/estado… }`
+  },
+  {
+    metodo: 'POST',
+    ruta: '/whatsapp/prueba',
+    resumen: 'Enviar el recordatorio amable de ejemplo',
+    acceso: 'sesion',
+    cuerpo: `{ "telefono": "+52 55 1234 5678" }`,
+    respuesta: `{ "ok": true }`
+  },
+  {
+    metodo: 'POST',
+    ruta: '/whatsapp/desconectar',
+    resumen: 'Desconectar el número',
+    detalle: 'La cuenta vuelve al simulador.',
+    acceso: 'sesion',
+    respuesta: `{ "ok": true }`
+  }]
+
+},
+{
   id: 'api-guia',
   titulo: 'Guía (IA)',
   descripcion: 'Asistente que enseña a usar Cobrix. Lee el estado real de la cuenta y propone botones que iluminan dónde presionar.',
@@ -341,8 +418,9 @@ export const ENV_BACKEND: {nombre: string;requerida?: boolean;ejemplo: string;de
 { nombre: 'GEMINI_MODEL', ejemplo: 'gemini-3.8-flash', descripcion: 'Modelo de Google AI Studio.' },
 { nombre: 'GEMINI_THINKING', ejemplo: 'low', descripcion: 'minimal | low | medium | high. Menos = más rápido.' },
 { nombre: 'AI_RATE_LIMIT_PER_10MIN', ejemplo: '30', descripcion: 'Llamadas de IA por usuario cada 10 minutos.' },
-{ nombre: 'WHATSAPP_TOKEN', ejemplo: 'EAAG…', descripcion: 'Token permanente de un usuario de sistema de Meta.' },
-{ nombre: 'WHATSAPP_PHONE_NUMBER_ID', ejemplo: '1234567890', descripcion: 'ID del número de WhatsApp Business.' },
+{ nombre: 'WHATSAPP_TOKEN', ejemplo: 'EAAG…', descripcion: 'Token permanente de un usuario de sistema (whatsapp_business_management y _messaging).' },
+{ nombre: 'WHATSAPP_WABA_ID', ejemplo: '1029384756', descripcion: 'Cuenta de WhatsApp Business de Cobrix: ahí se registran los números de las empresas.' },
+{ nombre: 'WHATSAPP_PHONE_NUMBER_ID', ejemplo: '1234567890', descripcion: 'Opcional: número compartido de demo para cuentas sin número propio.' },
 { nombre: 'WHATSAPP_VERIFY_TOKEN', ejemplo: 'una-frase-secreta', descripcion: 'Lo inventas tú; el mismo va en Meta.' },
 { nombre: 'WHATSAPP_APP_SECRET', ejemplo: 'a1b2…', descripcion: 'Valida la firma de cada webhook.' },
 { nombre: 'WHATSAPP_TEMPLATE_*', ejemplo: 'cobrix_recordatorio_amable', descripcion: 'Nombres de las 3 plantillas (AMABLE, FIRME, FINAL).' },
@@ -356,7 +434,7 @@ export const ENV_FRONTEND: {nombre: string;ejemplo: string;descripcion: string;}
 
 
 export const TABLAS: {nombre: string;descripcion: string;columnas: string;}[] = [
-{ nombre: 'perfiles', descripcion: 'Una fila por usuario: empresa, canal, teléfono de pruebas y reglas (jsonb).', columnas: 'user_id · nombre · empresa · canal · telefono_prueba · es_anonimo · politicas' },
+{ nombre: 'perfiles', descripcion: 'Una fila por usuario: empresa, canal, reglas (jsonb) y su número de WhatsApp conectado.', columnas: 'user_id · nombre · empresa · canal · telefono_prueba · politicas · wa_phone_number_id · wa_numero · wa_estado' },
 { nombre: 'clientes', descripcion: 'Deudores de la empresa. telefono_digitos se genera para ubicar al cliente desde el webhook.', columnas: 'id · nombre · empresa · telefono · email · canal' },
 { nombre: 'facturas', descripcion: 'El atraso y "vencida" se calculan en el backend a partir de la fecha de vencimiento.', columnas: 'id · cliente_id · folio · monto · fecha_emision · fecha_vencimiento · estado' },
 { nombre: 'prioridades', descripcion: 'Último score calculado por cliente.', columnas: 'cliente_id · score · nivel · razon' },

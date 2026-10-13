@@ -23,6 +23,7 @@ import type {
 '../types/cobranza';
 import type { EventoGuia, MensajeGuia } from '../types/guia';
 import type { Politicas } from '../types/politicas';
+import type { EstadoWhatsApp, MetodoCodigo } from '../types/whatsapp';
 import { plantillas } from '../data/plantillas';
 import { env } from '../utils/env';
 import type { OpcionesCobranza } from './mockApi';
@@ -215,3 +216,19 @@ export const vaciarDatos = async () => {
 
 export const getPoliticas = () => get<Politicas>('/politicas');
 export const guardarPoliticas = (politicas: Politicas) => post<Politicas>('/politicas', politicas, 'PUT');
+
+/* ───────────── WhatsApp propio de la empresa ───────────── */
+
+export const getWhatsApp = () => get<EstadoWhatsApp>('/whatsapp/estado');
+export const conectarWhatsApp = (datos: {cc: string;numero: string;nombre: string;metodo: MetodoCodigo;}) => post<EstadoWhatsApp>('/whatsapp/conectar', datos);
+export const reenviarCodigoWhatsApp = async (metodo: MetodoCodigo) => {
+  await post('/whatsapp/reenviar', { metodo });
+};
+export const verificarCodigoWhatsApp = (codigo: string) => post<EstadoWhatsApp>('/whatsapp/verificar', { codigo });
+export const desconectarWhatsApp = async () => {
+  await post('/whatsapp/desconectar');
+};
+export const sincronizarPlantillas = () => post<EstadoWhatsApp>('/whatsapp/plantillas');
+export const enviarPruebaWhatsApp = async (telefono: string) => {
+  await post('/whatsapp/prueba', { telefono });
+};

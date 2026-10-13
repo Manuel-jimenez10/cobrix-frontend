@@ -68,7 +68,7 @@ export function useAccionGuia() {
         case 'reglas':
           return ir('/ajustes#reglas', { objetivo: ['reglas'], titulo: 'Reglas de cobranza', texto: 'Aquí defines el horario de envíos y el tono máximo. Al terminar presiona “Guardar reglas”.' });
         case 'whatsapp':
-          return ir('/ajustes#whatsapp', { objetivo: ['whatsapp'], titulo: 'Conexión con WhatsApp', texto: 'Revisa el estado de la conexión y escribe tu número de pruebas.' });
+          return ir('/ajustes#whatsapp', { objetivo: ['conectar-whatsapp', 'whatsapp'], titulo: 'Conecta el WhatsApp de tu empresa', texto: 'Presiona “Conectar mi WhatsApp”, escribe tu número y confirma el código que te llega por SMS.' });
         case 'ajustes':
           return ir('/ajustes');
         case 'recorrido':{

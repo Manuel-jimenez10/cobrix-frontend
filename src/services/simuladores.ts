@@ -40,7 +40,7 @@ const FAQS: Faq[] = [
 },
 {
   patron: /(whatsapp|meta|numero|telefono|24 ?h|ventana)/,
-  texto: () => 'Meta solo permite texto libre durante 24 h después del último mensaje del cliente; fuera de esa ventana solo plantillas aprobadas. Por eso los recordatorios son plantillas. En Ajustes eliges el canal y tu número de pruebas.',
+  texto: () => 'Para enviar desde el número de tu empresa: Ajustes → “Conectar mi WhatsApp”, escribe tu número y el nombre del negocio, confirma el código de 6 dígitos que te llega por SMS y listo; Cobrix crea las plantillas. Ese número no puede estar activo en la app de WhatsApp. Recuerda: Meta solo permite texto libre 24 h después del último mensaje del cliente; fuera de esa ventana, solo plantillas.',
   acciones: [{ destino: 'whatsapp', etiqueta: 'Configurar WhatsApp' }]
 },
 {

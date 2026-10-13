@@ -24,6 +24,7 @@ import type {
   Tono } from
 '../types/cobranza';
 import type { EventoGuia, MensajeGuia } from '../types/guia';
+import type { EstadoWhatsApp, MetodoCodigo } from '../types/whatsapp';
 import { llenarPlantilla, siguienteTono } from '../utils/cobranza';
 import { formatFecha, formatMXN, normalizar, primerNombre } from '../utils/format';
 import { crearId, escribir, espera } from '../utils/stream';
@@ -366,4 +367,61 @@ export async function cargarDatosEjemplo(): Promise<void> {
 export async function vaciarDatos(): Promise<void> {
   await espera(150, 250);
   store.db = crearDb(false, store.db.canal);
+}
+/* ───────────── WhatsApp propio (simulado: el código de prueba es 123456) ───────────── */
+
+let waMock: EstadoWhatsApp = {
+  disponible: true,
+  estado: 'desconectado',
+  numero: null,
+  nombre: null,
+  calidad: null,
+  estadoNombre: null,
+  plantillas: (['amable', 'firme', 'final'] as const).map((tono) => ({ tono, nombre: `cobrix_${tono}`, estado: 'NO_CREADA' })),
+  webhookUrl: 'https://cobrix-backend.onrender.com/webhooks/whatsapp'
+};
+
+export async function getWhatsApp(): Promise<EstadoWhatsApp> {
+  await espera(250, 400);
+  return clonar(waMock);
+}
+
+export async function conectarWhatsApp(datos: {cc: string;numero: string;nombre: string;metodo: MetodoCodigo;}): Promise<EstadoWhatsApp> {
+  await espera(900, 1300);
+  waMock = { ...waMock, estado: 'verificando', numero: `+${datos.cc.replace('+', '')} ${datos.numero}`, nombre: datos.nombre };
+  return clonar(waMock);
+}
+
+export async function reenviarCodigoWhatsApp(_: MetodoCodigo): Promise<void> {
+  await espera(600, 900);
+}
+
+export async function verificarCodigoWhatsApp(codigo: string): Promise<EstadoWhatsApp> {
+  await espera(1200, 1600);
+  if (codigo !== '123456') throw new Error('El código no es correcto. En la demo sin servidor usa 123456.');
+  waMock = {
+    ...waMock,
+    estado: 'conectado',
+    calidad: 'GREEN',
+    estadoNombre: 'APPROVED',
+    plantillas: waMock.plantillas.map((p, i) => ({ ...p, estado: i === 0 ? 'APPROVED' : 'PENDING' }))
+  };
+  store.db.canal = 'whatsapp';
+  return clonar(waMock);
+}
+
+export async function desconectarWhatsApp(): Promise<void> {
+  await espera(400, 600);
+  waMock = { ...waMock, estado: 'desconectado', numero: null, nombre: null, calidad: null, estadoNombre: null };
+  store.db.canal = 'simulador';
+}
+
+export async function sincronizarPlantillas(): Promise<EstadoWhatsApp> {
+  await espera(500, 800);
+  waMock = { ...waMock, plantillas: waMock.plantillas.map((p) => ({ ...p, estado: p.estado === 'NO_CREADA' ? 'PENDING' : p.estado === 'PENDING' ? 'APPROVED' : p.estado })) };
+  return clonar(waMock);
+}
+
+export async function enviarPruebaWhatsApp(_: string): Promise<void> {
+  await espera(700, 1000);
 }

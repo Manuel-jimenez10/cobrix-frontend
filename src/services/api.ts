@@ -32,6 +32,13 @@ export const probarConexionWhatsApp = impl.probarConexionWhatsApp;
 export const getPlantillas = impl.getPlantillas;
 export const cargarDatosEjemplo = impl.cargarDatosEjemplo;
 export const vaciarDatos = impl.vaciarDatos;
+export const getWhatsApp = impl.getWhatsApp;
+export const conectarWhatsApp = impl.conectarWhatsApp;
+export const reenviarCodigoWhatsApp = impl.reenviarCodigoWhatsApp;
+export const verificarCodigoWhatsApp = impl.verificarCodigoWhatsApp;
+export const desconectarWhatsApp = impl.desconectarWhatsApp;
+export const sincronizarPlantillas = impl.sincronizarPlantillas;
+export const enviarPruebaWhatsApp = impl.enviarPruebaWhatsApp;
 
 /* Solo existen con backend real; en modo mock son no-ops. */
 export const getPerfil = usaDatosMock ?
